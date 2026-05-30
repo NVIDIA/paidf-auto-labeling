@@ -1,0 +1,82 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+name: auto-labeling
+services:
+  auto-labeling:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        # Match the repo README Blackwell example (sm_120 requires cu128 builds).
+        TORCH_CUDA_INDEX: cu128
+        TORCH_VERSION: "2.8.0"
+        TORCHVISION_VERSION: "0.23.0"
+        TORCHAUDIO_VERSION: "2.8.0"
+        INSTALL_FLASH_ATTN: "1"
+        FLASH_ATTN_VERSION: "2.8.3"
+    # Allow overriding the image tag (useful for custom builds without touching shared tags).
+    # Example:
+    #   AUTO_LABELING_IMAGE=paidf-auto-labeling:my-custom-build docker compose -f docker/docker-compose.yml run --rm auto-labeling bash
+    image: ${AUTO_LABELING_IMAGE:-paidf-auto-labeling:local}
+    working_dir: /workspace
+    environment:
+      # Runtime UID/GID: entrypoint remaps the internal "nvidia" user to these IDs via gosu.
+      # Set to your host user (default 1000) so bind-mounted dirs are writable without chmod 777.
+      # Requires --user 0:0 to start as root so the gosu block activates.
+      # Example: PUID=$(id -u) PGID=$(id -g) docker compose run --rm --user 0:0 auto-labeling bash
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      # Ensure `uv run ...` uses the prebuilt venv instead of creating /workspace/.venv
+      # (which would miss CUDA/pytorch-index-installed packages like torchvision).
+      UV_PROJECT_ENVIRONMENT: /opt/venv
+      # Don't let `uv run` mutate /opt/venv (torch/torchvision are installed in Dockerfile
+      # from the CUDA wheel index and must stay version-matched).
+      UV_NO_SYNC: "1"
+      # API keys for VLM/LLM endpoints (preferred names, consistent with augmentation repo).
+      VLM_API_KEY: ${VLM_API_KEY:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      # Shared API keys also auto-read by NVIDIA/OpenAI SDKs.
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      HF_TOKEN: ${HF_TOKEN:-}
+      # Cloud credentials / endpoints (pass-through for S3-compatible backends)
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-}
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_PROFILE: ${AWS_PROFILE:-}
+      AWS_DEFAULT_PROFILE: ${AWS_DEFAULT_PROFILE:-}
+      AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-}
+      AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT_URL_S3:-}
+      AWS_S3_ADDRESSING_STYLE: ${AWS_S3_ADDRESSING_STYLE:-}
+      # MSC configuration
+      # MSC_CONFIG is normally set internally by the CLI (it writes /tmp/msc_config.json).
+      # Exposed here only for environments that already provide MSC_CONFIG.
+      MSC_CONFIG: ${MSC_CONFIG:-}
+      MULTISTORAGECLIENT_CONFIGURATION: ${MULTISTORAGECLIENT_CONFIGURATION:-}
+      # Proxies (if needed for remote storage access)
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+      http_proxy: ${http_proxy:-}
+      https_proxy: ${https_proxy:-}
+      no_proxy: ${no_proxy:-}
+    volumes:
+      - ..:/workspace:rw
+      # Persist ckpts on the host. Python stage initializers will download once if missing.
+      - ../ckpts:/workspace/ckpts:rw
+      # - ./input:/workspace/input:rw
+      # - ./output:/workspace/output:rw
+    # Requires NVIDIA Container Toolkit on the host.
+    gpus: all
+    # Allow container to reach host services via host.docker.internal (Linux needs host-gateway).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    shm_size: "8gb"
+    stdin_open: true
+    tty: true
+    # Use the repo's entrypoint script via bind-mount so changes take effect without rebuilding the image.
+    # (We invoke it with bash so it does not require the executable bit on the host.)
+    entrypoint: ["bash", "/workspace/docker/entrypoint.sh"]

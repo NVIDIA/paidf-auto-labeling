@@ -1,0 +1,177 @@
+{
+  "name": "traffic",
+  "questions": [
+    {
+      "id": "1_01",
+      "question": "Is there a traffic accident in the video?",
+      "options": [
+        "A. No accident in the video",
+        "B. The moment of collision is occurring in the video",
+        "C. A collision occurred prior to the video"
+      ],
+      "aggregation": "majority"
+    },
+    {
+      "id": "1_02",
+      "question": "Are police vehicles present in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_03",
+      "question": "Is there visible evidence that the weather is clear in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_04",
+      "question": "Is there visible evidence that the weather is cloudy or overcast in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_05",
+      "question": "Is there visible evidence that it is raining in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_06",
+      "question": "Is there visible evidence that the weather is foggy in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_07",
+      "question": "What is the time of day in the scene?",
+      "options": [
+        "A. Day",
+        "B. Night",
+        "C. Other"
+      ],
+      "aggregation": "majority"
+    },
+    {
+      "id": "1_08",
+      "question": "Are ambulances present in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_09",
+      "question": "Are fire trucks present in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_10",
+      "question": "Are the roads wet?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_11",
+      "question": "Are there any pedestrians walking in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "2_01",
+      "question": "Is a sedan involved in the accident?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "2_02",
+      "question": "What is the color of the sedan in the accident?",
+      "options": [
+        "A. Black",
+        "B. White",
+        "C. Gray",
+        "D. Blue",
+        "E. Red",
+        "F. Green",
+        "G. Other"
+      ],
+      "aggregation": "majority",
+      "include_if": {
+        "2_01": "A. Yes"
+      }
+    },
+    {
+      "id": "2_03",
+      "question": "Is a motorcycle or bicycle involved in the accident?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "2_04",
+      "question": "Is a walking pedestrian involved in the accident?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "2_05",
+      "question": "Is a vehicle running a red light?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "2_06",
+      "question": "Are there any pedestrians walking across the road in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any",
+      "include_if": {
+        "1_11": "A. Yes"
+      }
+    },
+    {
+      "id": "3_01",
+      "question": "Describe the road layout and traffic pattern.",
+      "options": [],
+      "aggregation": "first"
+    }
+  ]
+}

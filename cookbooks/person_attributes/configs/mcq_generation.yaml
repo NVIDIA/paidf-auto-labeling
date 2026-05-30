@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+mcq_generation:
+  mode: question-driven-vlm-llm
+  window_metadata_extraction:
+    single_window: true
+    vlm_verify_enabled: false
+    question_bank_file: cookbooks/person_attributes/question_bank.json
+    qd_vlm_scene_prompt_template_file: cookbooks/person_attributes/prompts/mcq/question_driven_vlm_llm/vlm_scene_prompt_template.md

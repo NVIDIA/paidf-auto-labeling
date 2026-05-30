@@ -1,0 +1,146 @@
+{
+  "name": "warehouse_shelving_lighting_floor",
+  "questions": [
+    {
+      "id": "w_1",
+      "question": "Is shelving visible in the scene?",
+      "options": [
+        "A. concrete_floor",
+        "B. shelving_visible",
+        "C. charging_zone",
+        "D. pallet_barrier"
+      ]
+    },
+    {
+      "id": "w_2",
+      "question": "What type of lighting is present in the scene?",
+      "options": [
+        "A. bright_direct",
+        "B. soft_diffused",
+        "C. dim_ambient",
+        "D. harsh_shadow"
+      ]
+    },
+    {
+      "id": "w_3",
+      "question": "What is the condition of the floor surface in the frame?",
+      "options": [
+        "A. dusty",
+        "B. polished_clean",
+        "C. rough",
+        "D. wet"
+      ]
+    },
+    {
+      "id": "w_4",
+      "question": "Are pallets visible in the scene?",
+      "options": [
+        "A. no_pallets_visible",
+        "B. empty_pallets",
+        "C. loaded_pallets",
+        "D. unclear"
+      ]
+    },
+    {
+      "id": "w_5",
+      "question": "Is a forklift or other industrial vehicle visible?",
+      "options": [
+        "A. none",
+        "B. forklift",
+        "C. pallet_jack",
+        "D. other_industrial_vehicle",
+        "E. unclear"
+      ]
+    },
+    {
+      "id": "w_6",
+      "question": "Are humans visible in the workspace?",
+      "options": [
+        "A. no_humans",
+        "B. humans_present_near_robot",
+        "C. humans_present_far",
+        "D. unclear"
+      ]
+    },
+    {
+      "id": "w_7",
+      "question": "Is there any visible obstacle on the floor that could block a robot path?",
+      "options": [
+        "A. none",
+        "B. boxes_or_packages",
+        "C. pallets_or_wrapping",
+        "D. debris_or_spill",
+        "E. cables_or_hoses",
+        "F. other_obstacle",
+        "G. unclear"
+      ]
+    },
+    {
+      "id": "w_8",
+      "question": "What type of aisle is the camera viewing?",
+      "options": [
+        "A. narrow_aisle_between_shelves",
+        "B. wide_open_area",
+        "C. cross_aisle_intersection",
+        "D. loading_dock_area",
+        "E. unclear"
+      ]
+    },
+    {
+      "id": "w_9",
+      "question": "Are floor markings visible (e.g., lanes, safety zones, stop lines)?",
+      "options": [
+        "A. none",
+        "B. lane_markings",
+        "C. safety_zone_markings",
+        "D. stop_or_yield_markings",
+        "E. other_markings",
+        "F. unclear"
+      ]
+    },
+    {
+      "id": "w_10",
+      "question": "Is the robot dock/charging station visible?",
+      "options": [
+        "A. not_visible",
+        "B. visible",
+        "C. unclear"
+      ]
+    },
+    {
+      "id": "w_11",
+      "question": "Is the robot carrying a load?",
+      "options": [
+        "A. not_applicable_no_robot_visible",
+        "B. no_load",
+        "C. carrying_pallet",
+        "D. carrying_box_or_tote",
+        "E. other_load",
+        "F. unclear"
+      ]
+    },
+    {
+      "id": "w_12",
+      "question": "What is the dominant floor material/appearance?",
+      "options": [
+        "A. concrete",
+        "B. epoxy_or_painted",
+        "C. tile",
+        "D. metal_grating",
+        "E. other",
+        "F. unclear"
+      ]
+    },
+    {
+      "id": "w_13",
+      "question": "Is the camera view stable or moving?",
+      "options": [
+        "A. fixed_static_camera",
+        "B. moving_camera_on_robot_or_vehicle",
+        "C. handheld_or_shaky",
+        "D. unclear"
+      ]
+    }
+  ]
+}
+

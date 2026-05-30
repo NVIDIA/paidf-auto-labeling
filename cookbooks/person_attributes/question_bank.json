@@ -1,0 +1,41 @@
+{
+  "name": "person_attributes",
+  "questions": [
+    {
+      "id": "easy_1",
+      "question": "Write a short, simple caption describing only the person's top outer garment. Start exactly with: \"A person wearing\". Only mention what is visible in this image. Do not include unknown, not visible, other, or negative descriptions such as no hat, no glasses, no mask, or no backpack. Mention only the top outer garment (broad color + specific broad type). Use specific broad garment types such as coat, hoodie, sweater, vest, jacket, robe, or camisole; do not use generic categories such as clothing or outfit. Collapse length- or style-bearing types to a plain type, for example knee-length coat -> coat and cropped jacket -> jacket. Do not mention bottom garment, pose, viewing direction, footwear, sleeve length, garment length, accessories, carried items, or body features."
+    },
+    {
+      "id": "easy_2",
+      "question": "Write another short, simple caption describing only the person's bottom garment. Start exactly with: \"A person wearing\". Only mention what is visible in this image. Do not include unknown, not visible, other, or negative descriptions such as no hat, no glasses, no mask, or no backpack. Mention only the bottom garment (broad color + specific broad type). Use specific broad garment types such as leggings, jeans, shorts, skirt, or dress; do not use generic categories such as bottoms, clothing, outfit, or legwear. Do not mention top outer garment, pose, viewing direction, footwear, sleeve length, garment length, accessories, carried items, or body features. This caption must be different from easy_1."
+    },
+    {
+      "id": "easy_3",
+      "question": "Write one more short, simple caption combining the person's top outer garment and bottom garment. Start exactly with: \"A person wearing\". Only mention what is visible in this image. Do not include unknown, not visible, other, or negative descriptions such as no hat, no glasses, no mask, or no backpack. Mention only top outer garment (broad color + specific broad type) and bottom garment (broad color + specific broad type). Use specific broad garment types such as coat, hoodie, sweater, vest, jacket, robe, camisole, leggings, jeans, shorts, skirt, or dress; do not use generic categories such as bottoms, clothing, outfit, or legwear. Collapse length- or style-bearing top types to a plain type, for example knee-length coat -> coat and cropped jacket -> jacket. Do not mention pose, viewing direction, footwear, sleeve length, garment length, accessories, carried items, or body features. This caption must be different from easy_1 and easy_2."
+    },
+    {
+      "id": "medium_1",
+      "question": "Write a simple natural sentence describing this person. Start exactly with: \"A person wearing\". Only mention what is visible in this image. Do not include unknown, not visible, other, or negative descriptions such as no hat, no glasses, no mask, or no backpack. Required attributes: top outer (fine-grained color + type), bottom (fine-grained color + type), and footwear (type + fine-grained color). You may include garment length or sleeve length only if clearly visible. Use fine-grained color terms when visible, such as charcoal grey, off-white, navy blue, dark brown, olive green, or similar canonical refinements. Do not mention pose or viewing direction."
+    },
+    {
+      "id": "medium_2",
+      "question": "Write another simple natural sentence describing this person. Start exactly with: \"A person wearing\". Only mention what is visible in this image. Do not include unknown, not visible, other, or negative descriptions such as no hat, no glasses, no mask, or no backpack. Cover top outer (fine-grained color + type), bottom (fine-grained color + type), and footwear (type + fine-grained color). You may include garment length or sleeve length only if clearly visible. Use fine-grained color refinements whenever the image supports them. Do not mention pose or viewing direction."
+    },
+    {
+      "id": "medium_3",
+      "question": "Write one more simple natural sentence describing this person. Start exactly with: \"A person wearing\". Only mention what is visible in this image. Do not include unknown, not visible, other, or negative descriptions such as no hat, no glasses, no mask, or no backpack. Cover top outer (fine-grained color + type), bottom (fine-grained color + type), and footwear (type + fine-grained color). You may include garment length or sleeve length only if clearly visible. You may add one clearly visible accessory, carried item, or body feature if present. Use fine-grained color refinements whenever the image supports them. Do not mention pose or viewing direction."
+    },
+    {
+      "id": "hard_1",
+      "question": "Write a detailed, natural description of this person as flowing prose. Only mention what is visible in this image, using positive visual details without words like unknown, not visible, or other, and without negative descriptions such as no hat, no glasses, no mask, or no backpack. Focus on distinctive visual features, especially fine-grained clothing colors and clothing types, visible accessories such as glasses, backpack, or hat, hair, footwear, pose, action, and the view of the person's face or body when useful, such as from the front, back, or side. Use fine-grained color refinements whenever visible, such as charcoal grey, off-white, navy blue, denim blue, dark brown, olive green, maroon, or similar canonical refinements. Write from head to toe in natural sentences and emphasize clothing and overall silhouette. Do NOT mention gender, age, or skin tone."
+    },
+    {
+      "id": "hard_2",
+      "question": "Write another detailed, natural description of this person using only visible details from the image. Do not include unknown, not visible, other, or negative descriptions such as no hat, no glasses, no mask, or no backpack. Focus on distinctive visual features and make this caption emphasize different aspects than hard_1, such as accessories, carried items, hair, face/body view, pose, or viewing direction, while still including visible fine-grained clothing colors and clothing types where clear. Use fine-grained color refinements whenever visible, such as charcoal grey, off-white, navy blue, denim blue, dark brown, olive green, maroon, or similar canonical refinements. Write it from the perspective of someone observing the scene, starting from the most visually striking visible feature, with entirely different vocabulary and sentence flow from hard_1. Do NOT mention gender, age, or skin tone."
+    },
+    {
+      "id": "hard_3",
+      "question": "Write one final detailed, natural description of this person using only visible details from the image. Do not include unknown, not visible, other, or negative descriptions such as no hat, no glasses, no mask, or no backpack. Focus on distinctive visual features: fine-grained clothing color/type, visible accessories, hair, footwear, pose, action, and occasional face/body view such as front, back, or side when it helps identification. Use fine-grained color refinements whenever visible, such as charcoal grey, off-white, navy blue, denim blue, dark brown, olive green, maroon, or similar canonical refinements. Write it as a concise but complete sentence, densely packed with specific details, as if writing a precise identification note. Use words and phrasing not used in hard_1 or hard_2. Do NOT mention gender, age, or skin tone."
+    }
+  ]
+}

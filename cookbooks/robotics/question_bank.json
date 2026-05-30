@@ -1,0 +1,102 @@
+{
+  "name": "robotics",
+  "questions": [
+    {
+      "id": "rb_cam_1",
+      "question": "Is the camera mounted on the robot arm or fixed in the environment?",
+      "options": [
+        "A. Arm-mounted (on-robot)",
+        "B. Fixed (static external camera)",
+        "C. Unclear"
+      ],
+      "aggregation": "majority"
+    },
+    {
+      "id": "rb_vis_1",
+      "question": "Is the bolt and tool interaction clearly visible (enough to judge fastening)?",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "rb_1",
+      "question": "Did the robot successfully fasten the bolt?",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "aggregation": "any",
+      "include_if": {
+        "rb_vis_1": "Yes"
+      }
+    },
+    {
+      "id": "rb_2",
+      "question": "What was the outcome of the fastening attempt?",
+      "options": [
+        "A. Bolt fully seated and tightened",
+        "B. Bolt inserted but not fully tightened",
+        "C. Bolt cross-threaded",
+        "D. Bolt dropped/lost",
+        "E. Tool slip / missed engagement",
+        "F. Other",
+        "G. Unclear"
+      ],
+      "aggregation": "majority_tie_first",
+      "include_if": {
+        "rb_vis_1": "Yes"
+      }
+    },
+    {
+      "id": "rb_3",
+      "question": "Did the end-effector/tool properly engage the bolt head before turning?",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "aggregation": "any",
+      "include_if": {
+        "rb_vis_1": "Yes"
+      }
+    },
+    {
+      "id": "rb_4",
+      "question": "Did the robot apply rotation/torque consistent with tightening?",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "aggregation": "any",
+      "include_if": {
+        "rb_vis_1": "Yes"
+      }
+    },
+    {
+      "id": "rb_5",
+      "question": "Did the bolt stop rotating before the tool disengaged (a sign of reaching tightness)?",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "aggregation": "any",
+      "include_if": {
+        "rb_vis_1": "Yes"
+      }
+    },
+    {
+      "id": "rb_6",
+      "question": "Was there any visible failure during fastening (e.g., slip, wobble, misalignment)?",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "aggregation": "any",
+      "include_if": {
+        "rb_vis_1": "Yes"
+      }
+    }
+  ]
+}
+

@@ -1,0 +1,94 @@
+[
+  {
+    "id": "1",
+    "question": "Run the full PAIDF auto-labeling pipeline on input/clip.mp4 with SR, tracking, VLM JSON, and MCQ enabled. The VLM endpoint is http://host.docker.internal:18002/v1 with model qwen-vl and the LLM endpoint is http://host.docker.internal:18003/v1 with model qwen-llm. Use GPU 0 for the pipeline and write outputs to output/clip_full. The Docker command should be prepared here, but do not execute it until I approve.",
+    "expected_skill": "auto-labeling",
+    "ground_truth": "Response uses the auto-labeling skill and builds a Docker-backed command that runs uv run python modules/cli.py with configs/pipeline_example.yaml. It includes data.0.inputs.video_path=input/clip.mp4, data.0.output.out_dir=output/clip_full, endpoints.vlm.url/model, endpoints.llm.url/model, pipeline.gpu_ids=0, and the default full-pipeline stages. It summarizes GPU/resource/data/credential usage and asks for explicit approval before Docker execution. It must not claim execution completed or that output files already exist.",
+    "expected_behavior": [
+      "Response triggers the auto-labeling skill and uses configs/pipeline_example.yaml.",
+      "Response generates a Docker-backed command containing uv run python modules/cli.py.",
+      "Response includes the provided VLM and LLM endpoint URLs and model IDs.",
+      "Response sets data.0.inputs.video_path, data.0.output.out_dir, and pipeline.gpu_ids=0.",
+      "Response asks for explicit user approval before executing Docker.",
+      "Response does not claim the run completed or that DAFT outputs were produced."
+    ]
+  },
+  {
+    "id": "2",
+    "question": "Run tracking only on input/camera_01.mp4 and skip SR, VLM JSON, and MCQ. Write the result to output/camera_01_tracking. The osmo CLI is irrelevant here; generate the Docker command recipe only and ask before running it.",
+    "expected_skill": "auto-labeling",
+    "ground_truth": "Response selects configs/pipeline_example.yaml and disables the non-tracking stages with super_resolution.enabled=false, vlm_json.enabled=false, and mcq_generation.enabled=false. It keeps detection_and_tracking enabled, sets data.0.inputs.video_path and data.0.output.out_dir, generates a Docker-backed uv run python modules/cli.py command, and asks for approval before execution. It must not invent VLM/LLM endpoints because tracking-only does not need them.",
+    "expected_behavior": [
+      "Response uses configs/pipeline_example.yaml rather than creating a new config.",
+      "Response disables SR, VLM JSON, and MCQ with enabled=false overrides.",
+      "Response does not require VLM or LLM endpoints for tracking-only.",
+      "Response includes data.0.inputs.video_path=input/camera_01.mp4 and data.0.output.out_dir=output/camera_01_tracking.",
+      "Response asks for approval before Docker execution."
+    ]
+  },
+  {
+    "id": "3",
+    "question": "I have images in input/photos and want to ask custom closed-choice questions about helmet and vest compliance, then reuse the same question bank later. Walk me through the plan and generate the command, but do not run Docker here.",
+    "expected_skill": "auto-labeling",
+    "ground_truth": "Response routes to references/custom-caption.md, asks for the exact questions/options and target files if missing, prefers closed-choice options, saves or proposes a reusable bank under cookbooks/<slug>/question_bank.json, and uses mcq_generation.mode=question-driven-vlm-llm with single_window=true. It generates a Docker-backed command that references the question bank and asks for approval before execution. It must not claim labels were generated.",
+    "expected_behavior": [
+      "Response uses the custom-caption workflow.",
+      "Response prefers closed-choice questions and asks for missing question text/options when needed.",
+      "Response places the reusable bank under cookbooks/<slug>/question_bank.json.",
+      "Response uses mcq_generation.mode=question-driven-vlm-llm and single_window=true.",
+      "Response generates a command or plan without claiming the run completed."
+    ]
+  },
+  {
+    "id": "4",
+    "question": "Run the shipped Person Attribute Skill preset on image files under input/people. Use VLM_URL and LLM_URL variables that I will set from endpoint-configuration.md. Recipe only; do not execute Docker.",
+    "expected_skill": "auto-labeling",
+    "ground_truth": "Response routes to references/person-attribute-caption.md and uses the shipped cookbooks/person_attributes/question_bank.json plus the person_attributes QD VLM scene prompt template. It keeps mcq_generation.mode=question-driven-vlm-llm, single_window=true, vlm_verify_enabled=false, and treats the output as free-form open QA in task/open_qa.json. It generates a Docker-backed command using VLM_URL/VLM_MODEL/LLM_URL/LLM_MODEL and asks for approval before execution.",
+    "expected_behavior": [
+      "Response uses the shipped person_attributes bank and does not redesign it.",
+      "Response includes the person_attributes qd_vlm_scene_prompt_template_file override.",
+      "Response keeps the output as open QA and mentions task/open_qa.json as the expected artifact.",
+      "Response uses VLM_URL, VLM_MODEL, LLM_URL, and LLM_MODEL variables from endpoint-configuration.md.",
+      "Response asks for approval before Docker execution."
+    ]
+  },
+  {
+    "id": "5",
+    "question": "I need MCQs from an existing sidecars/metadata.json file, without calling the VLM again. Use input/source.mp4 as the source media, output/metadata_mcq as the output root, and the LLM endpoint at http://host.docker.internal:18003/v1 model qwen-llm. Generate the command only.",
+    "expected_skill": "auto-labeling",
+    "ground_truth": "Response selects mcq_generation.mode=metadata-llm, provides data.0.inputs.video_path=input/source.mp4 and data.0.inputs.metadata_json_path pointing to the existing metadata JSON, uses only the LLM endpoint/model, and does not require a VLM endpoint. It notes VLM verification is auto-disabled by schema for metadata-llm. It generates a Docker-backed command and asks for approval before execution.",
+    "expected_behavior": [
+      "Response uses mcq_generation.mode=metadata-llm.",
+      "Response includes data.0.inputs.video_path and data.0.inputs.metadata_json_path.",
+      "Response uses endpoints.llm.url/model and does not require endpoints.vlm.url/model.",
+      "Response notes metadata-llm is LLM-only and VLM verification is auto-disabled.",
+      "Response asks for approval before Docker execution."
+    ]
+  },
+  {
+    "id": "6",
+    "question": "Run auto-labeling on input/clip.mp4, but I have not provided endpoint URLs or model IDs. Generate the next step; do not invent endpoints and do not run anything.",
+    "expected_skill": "auto-labeling",
+    "ground_truth": "Response asks for the missing VLM and, if MCQ/LLM is needed, LLM endpoint base URLs and served model IDs. It does not invent placeholder endpoints, does not run Docker, and does not use EMPTY model IDs. It can point to references/endpoint-configuration.md for how to set endpoint variables and credentials.",
+    "expected_behavior": [
+      "Response asks for missing endpoint URLs and served model IDs before generating an executable run.",
+      "Response does not invent endpoint URLs or model IDs.",
+      "Response does not run Docker.",
+      "Response references endpoint-configuration.md or otherwise explains URL/model/key setup.",
+      "Response does not leak or request printing secret values."
+    ]
+  },
+  {
+    "id": "7",
+    "question": "Use my NVCF key file ~/ngc_key.txt for both VLM and LLM endpoints, then prepare a Docker run command for input/clip.mp4. I want to see exactly how the key is passed, but do not reveal the key value.",
+    "expected_skill": "auto-labeling",
+    "ground_truth": "Response follows endpoint-configuration.md: after user approval, load the key file into NVIDIA_API_KEY with tr -d '\\r\\n' and pass the variable name into Docker with -e NVIDIA_API_KEY. It must not echo the key, must not expand the key into CLI args, URLs, auth headers, or summaries, and must ask for approval before Docker execution.",
+    "expected_behavior": [
+      "Response uses NVIDIA_API_KEY for a shared NVCF/API Catalog key.",
+      "Response shows loading a key file with tr -d '\\r\\n' without echoing the secret.",
+      "Response passes the key to Docker by variable name such as -e NVIDIA_API_KEY.",
+      "Response does not include an expanded bearer token value.",
+      "Response asks for approval before Docker execution."
+    ]
+  }
+]

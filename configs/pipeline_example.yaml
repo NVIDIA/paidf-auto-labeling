@@ -1,0 +1,355 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# =============================================================================
+# ABOUT THIS FILE (blueprint config)
+# =============================================================================
+# This repo is meant to be a *blueprint*: we ship ONE example config and expect
+# users to adapt it via CLI dotlist overrides (key=value). This YAML contains
+# "__REQUIRED__" placeholders; you must override them to run.
+#
+# Canonical invocation:
+#   uv run python modules/cli.py --config configs/pipeline_example.yaml \
+#     data.0.inputs.video_path="/path/to/video.mp4" \
+#     data.0.output.out_dir="output/my_run" \
+#     endpoints.vlm.url="http://<vlm-host>:<port>/v1" endpoints.vlm.model="<vlm_model_id>" \
+#     endpoints.llm.url="http://<llm-host>:<port>/v1" endpoints.llm.model="<llm_model_id>"
+#
+# If you run the pipeline inside Docker but your VLM/LLM servers are on the HOST,
+# use host-gateway DNS (Linux compose sets this for you). The repo launcher
+# defaults to VLM_PORT=18002 and LLM_PORT=18003, but use the actual served ports.
+#   endpoints.vlm.url="http://host.docker.internal:<VLM_PORT>/v1"
+#   endpoints.llm.url="http://host.docker.internal:<LLM_PORT>/v1"
+#
+# Multi-sample batch:
+#   - Add more samples: data.1.*, data.2.*, ...
+#   - Best practice: give each sample its own out_dir (keeps artifacts separate).
+#
+# Stage selection is done via <stage>.enabled overrides (do NOT create new YAMLs).
+# Common minimal patterns:
+#
+# - SR-only:
+#     super_resolution.enabled=true  detection_and_tracking.enabled=false  vlm_json.enabled=false  mcq_generation.enabled=false
+# - Tracking-only:
+#     super_resolution.enabled=false detection_and_tracking.enabled=true   vlm_json.enabled=false  mcq_generation.enabled=false
+# - VLM JSON only (video inputs: events.json + video.json; image inputs: image.json):
+#     super_resolution.enabled=false detection_and_tracking.enabled=false  vlm_json.enabled=true   mcq_generation.enabled=false
+# - Question-driven MCQ only (question bank -> VLM evidence -> LLM MCQ):
+#     super_resolution.enabled=false detection_and_tracking.enabled=false  vlm_json.enabled=false  mcq_generation.enabled=true mcq_generation.mode=question-driven-vlm-llm
+#
+# =============================================================================
+# Path conventions (important)
+# =============================================================================
+# - For INPUT-like paths (videos, sidecars, prompts, question banks, ckpts):
+#     - Absolute paths: used as-is.
+#     - Remote paths (msc://, s3://, http(s):// ...): used as-is.
+#     - "./" or "../": force config-relative resolution (relative to THIS file's directory: configs/).
+#     - Other relative paths: interpreted as repo-root relative by default.
+#       If the repo-root candidate does not exist, the CLI falls back to config-relative (best-effort).
+#
+# - For OUTPUT-like paths (out_dir, log_dir, config_path):
+#     - Absolute paths: used as-is.
+#     - Remote out_dir stages locally and uploads the whole scene on success.
+#     - Remote log_dir is uploaded separately when explicitly set outside remote out_dir.
+#       If it resolves to <remote out_dir>/logs, it is included in the scene upload.
+#     - Remote config_path is uploaded separately only for local out_dir runs;
+#       remote out_dir keeps config.yaml under the uploaded scene root.
+#     - "./" or "../": config-relative (configs/).
+#     - Other relative paths: repo-root relative by default.
+#
+# Common defaults:
+# - checkpoints: ./ckpts (host) or /workspace/ckpts (inside Docker)
+# - outputs:     ./output/...
+#
+# =============================================================================
+# Pipeline (global knobs)
+# =============================================================================
+pipeline:
+  # Where to read ckpts (default docker mount: /workspace/ckpts)
+  model_cache_path: ckpts
+  # GPU device IDs to use across the pipeline. "all" = auto-detect all visible GPUs.
+  # Examples: "all", "0", "2,3"
+  gpu_ids: all
+  # When false (default): SR uses only the first GPU in gpu_ids (safe, single-GPU mode).
+  # When true: SR uses all GPUs in gpu_ids (sp_size = number of selected GPUs).
+  use_multi_gpu: false
+  # empty_output_policy: warn | fail (default: warn)
+  # warn keeps best-effort runtime/missing-output fallbacks moving when downstream stages can still run;
+  # SR fallback under warn is marked in sidecars/pipeline_status.json as completed_degraded.
+  # fail stops on stage failures. Endpoint/config/init errors may still be fatal.
+  empty_output_policy: warn
+  # Run `tao-daft validate` on each completed scene. No-op unless the
+  # `nvidia-tao-daft` package is installed (it is not shipped in the container
+  # by default). Validator output is logged; it never fails the pipeline.
+  daft_validate: true
+
+# =============================================================================
+# Stage 0) Inputs / Outputs (always used)
+# =============================================================================
+#
+# The per-sample ``out_dir`` is the DAFT scene root. Stages write directly into
+# its subtree — per-file output paths are NOT user-configurable (they are fixed
+# by the DAFT v3.0 layout). If you need to override a location, override
+# ``out_dir`` itself.
+#
+#   <out_dir>/
+#   ├── raw/
+#   │   └── <media_id>.<ext>     # analyzed media; local inputs use symlink, remote-staged inputs use copy
+#   ├── contextual/              # DAFT-validated per-scene JSON
+#   │   ├── video.json | image.json
+#   │   ├── instances.json
+#   │   ├── objects.json
+#   │   └── events.json          # video inputs only
+#   ├── task/                    # DAFT-validated task items
+#   │   ├── mcq.json             # only if >=1 MCQ item
+#   │   ├── bcq.json             # only if >=1 BCQ item
+#   │   └── open_qa.json         # only if >=1 open-ended QA item
+#   └── sidecars/                # NOT validated by DAFT; auto-labeling-internal diagnostics, e.g.:
+#       ├── pipeline_status.json     # run status; marks SR fallback as completed_degraded
+#       ├── sr_output.<ext>          # SR output (source for raw/<media_id>.* when SR ran)
+#       ├── <track_stem>_detection.<ext>         # detection overlay (save_video=true)
+#       ├── <track_stem>_tracking.<ext>          # tracking overlay (save_video=true)
+#       ├── <track_stem>_tracking_red_id.<ext>   # red-id overlay (save_video_red_id=true)
+#       │                                  # overlay <ext> is mp4 for video inputs, png for image inputs
+#       ├── _work/<stage>/                  # per-stage scratch/debug workdirs
+#       ├── metadata.json            # metadata-llm mode input/output
+#       ├── mcq.vlm_verify.json      # VLM-verify diagnostic
+#       └── mcq.empty.json           # zero-task resume marker
+#
+data:
+  # Each list item is one scene/sample. In normal runs, override:
+  # - data.N.inputs.video_path
+  # - data.N.output.out_dir
+  - inputs:
+      # Required primary media input. Accepts a local path or remote URL
+      # (s3://, msc://, http(s)://). Despite the key name, this may be a
+      # video or an image; image inputs are treated as 1-frame clips.
+      video_path: "__REQUIRED__"
+      # Optional media override for VLM JSON and MCQ stages only. Leave null to
+      # let the pipeline choose the best available visual input:
+      #   1. sidecars/<track_stem>_tracking_red_id.<ext>, if tracking produced it
+      #      (`track_stem` is usually "sr_output" when SR ran, else the input stem)
+      #   2. SR output, when super_resolution.enabled=true
+      #   3. original video_path
+      # The red-id overlay is preferred because it shows id_<number> labels.
+      # VLM outputs may reference those IDs; DAFT export validates them against
+      # contextual/instances.json and drops ungrounded references.
+      # Example override: set this to a curated overlay, cropped clip, or image
+      # that VLM JSON / MCQ should inspect instead of the automatic choice:
+      #   vlm_video_path: /data/run_001/sidecars/my_custom_overlay.mp4
+      vlm_video_path: null
+      # Optional precomputed MCQ metadata input. Required only for
+      # mcq_generation.mode=metadata-llm, where the runner reads window captions
+      # from a prior sidecars/metadata.json instead of sampling media again.
+      metadata_json_path: null
+
+    output:
+      # Required output root for this sample. Treated as the DAFT scene root (see above).
+      # All stage outputs land at fixed paths inside this directory; there are no
+      # per-file output overrides.
+      out_dir: output/pipeline_example
+      # Optional: keep logs colocated with out_dir (useful for local runs and debugging).
+      log_dir: ${.out_dir}/logs
+      # OPTIONAL (default: ${out_dir}/config.yaml): save the effective config used for this run.
+      # For remote out_dir, the CLI keeps this under the uploaded scene root.
+      config_path: ${.out_dir}/config.yaml
+
+# =============================================================================
+# Stage endpoints (used by VLM / LLM stages)
+# =============================================================================
+endpoints:
+  vlm:
+    # Required when:
+    # - vlm_json.enabled=true
+    # - mcq_generation.mode is window-* or question-driven-vlm-llm
+    #
+    # Not used when:
+    # - mcq_generation.mode=metadata-llm (LLM-only; schema auto-disables vlm_verify_enabled)
+    url: "__REQUIRED__"
+    model: "__REQUIRED__"
+  llm:
+    # Required when:
+    # - mcq_generation.mode in {question-driven-vlm-llm, window-vlm-llm, metadata-llm}
+    #
+    # Not used when:
+    # - mcq_generation.enabled=false
+    # - mcq_generation.mode=window-direct-vlm
+    url: "__REQUIRED__"
+    model: "__REQUIRED__"
+
+# =============================================================================
+# Stage 1) Super-resolution (SR)
+# =============================================================================
+super_resolution:
+  # If enabled=true, runs SeedVR2 for video and image inputs.
+  # Image inputs force sp_size=1 because upstream SeedVR2 image inference is single-GPU.
+  # The upscaled media is kept under ``<out_dir>/sidecars/`` and exposed via
+  # ``<out_dir>/raw/<media_id>.<ext>``.
+  enabled: true
+  variant: seedvr2_3b
+  seed: 42
+  res_h: 720
+  res_w: 1280
+  window_frames: 128
+  overlap_frames: 64
+  # Wall-clock timeout for each SR window. On timeout, SR is
+  # treated as failed and empty_output_policy decides fallback vs abort.
+  window_timeout: 3600
+
+# =============================================================================
+# Stage 2) Detection & tracking
+# =============================================================================
+detection_and_tracking:
+  # If enabled=true, runs detector+tracker and writes:
+  # - DAFT JSON (always):
+  #     - <out_dir>/contextual/instances.json
+  #     - <out_dir>/contextual/objects.json
+  # - Debug overlays (sidecars/, gated by flags below):
+  #     - <out_dir>/sidecars/<track_stem>_detection.<ext>         (save_video=true)
+  #     - <out_dir>/sidecars/<track_stem>_tracking.<ext>          (save_video=true)
+  #     - <out_dir>/sidecars/<track_stem>_tracking_red_id.<ext>   (save_video_red_id=true)
+  #       overlay <ext> is mp4 for video inputs, png for image inputs
+  #
+  enabled: true
+  threshold: 0.2
+  iou_threshold: 0.3
+  classes:
+    - car
+    - truck
+    - bus
+    - motorcycle
+    - bicycle
+    - person
+  tracker: boosttrack
+  use_reid: true
+  reid_weights: ""
+  per_class: true
+  asso_func: diou
+  min_hits: 3
+  max_age: 60
+  min_track_frames: 5
+  save_vis: false
+  save_video: true
+  save_video_red_id: true
+  save_rgb: false
+  cross_class_iou_threshold: 0.9
+  dedup_iou_threshold: 0.3
+  dedup_priority: prev_iou
+
+# =============================================================================
+# Stage 3) VLM JSON contextual metadata from video or image input
+# =============================================================================
+vlm_json:
+  # If enabled=true, runs VLM inference and writes:
+  # - video inputs: <out_dir>/contextual/video.json + events.json
+  # - image inputs: <out_dir>/contextual/image.json
+  # Input media selection prefers (when available):
+  #   inputs.vlm_video_path -> sidecars/<track_stem>_tracking_red_id.<ext> -> SR output -> original input.
+  enabled: true
+  # Default: split video inputs into 2 VLM calls (video.json then events.json) for better reliability.
+  # If false, video inputs use one combined call that returns a wrapper object
+  # split into video.json and events.json.
+  # Image inputs always use a single image.json call.
+  # Runtime/parse fallbacks write minimal DAFT-compatible context when possible.
+  split_json_calls: true
+  # Optional prompt overrides. Leave unset to use shipped cookbook defaults:
+  # - cookbooks/shared/prompts/vlm_json/video_json_prompt.md
+  # - cookbooks/shared/prompts/vlm_json/video_events_prompt.md
+  # - cookbooks/shared/prompts/vlm_json/image_caption_prompt.md
+  scene_prompt_file:
+  events_prompt_file:
+  # Sampling defaults match the VlmJsonConfig schema.
+  frame_fps: 1.0
+  resolution: 360
+  max_frames: 24
+  # Split calls often need higher max_tokens to avoid truncating events.json.
+  max_tokens: 8192
+  timeout: 600
+  rate_limit: 0
+
+# =============================================================================
+# Stage 4) MCQ generation
+# =============================================================================
+mcq_generation:
+  # If enabled=true, generates MCQs from one of the following modes:
+  #
+  # - mode=question-driven-vlm-llm (DEFAULT here):
+  #     question bank -> prompt-gen LLM -> frames -> VLM caption -> LLM MCQ
+  #     requires endpoints.vlm + endpoints.llm
+  #
+  # - mode=window-vlm-llm:
+  #     frames -> VLM caption -> LLM MCQ
+  #     requires endpoints.vlm + endpoints.llm
+  #
+  # - mode=window-direct-vlm:
+  #     frames -> VLM directly outputs MCQ JSON
+  #     requires endpoints.vlm only
+  #
+  # - mode=metadata-llm:
+  #     existing metadata.json captions -> LLM MCQ
+  #     requires endpoints.llm
+  enabled: true
+  mode: question-driven-vlm-llm
+  # Shared MCQ settings. The default mode is question-driven-vlm-llm, so the
+  # only required domain input here is `question_bank_file`. Prompt paths below
+  # are optional overrides; leave them null to use the shipped prompt for the
+  # selected mode.
+  window_metadata_extraction:
+    # Question-driven default input:
+    # - REQUIRED for question-driven-vlm-llm.
+    # - Ignored by window-vlm-llm / window-direct-vlm / metadata-llm, which use
+    #   the embedded bank in mcq_prompt_file.
+    question_bank_file: cookbooks/traffic/question_bank.json
+
+    # Shipped traffic prompts/templates are organized by MCQ mode:
+    # - window-vlm-llm:
+    #     cookbooks/traffic/prompts/mcq/window_vlm_llm/{scene_prompt.md,mcq_prompt.md}
+    # - window-direct-vlm:
+    #     cookbooks/traffic/prompts/mcq/window_direct_vlm/mcq_prompt.md
+    # - metadata-llm:
+    #     cookbooks/traffic/prompts/mcq/metadata_llm/mcq_prompt.md
+    # - question-driven-vlm-llm:
+    #     cookbooks/shared/prompts/mcq/question_driven_vlm_llm/templates/*.md
+    # Prompt override files (leave null to use the shipped defaults above):
+    scene_prompt_file: null
+    # NOTE: window-* / metadata-llm will also parse an embedded question bank from this prompt file.
+    mcq_prompt_file: null
+    # QD-only template overrides:
+    qd_vlm_scene_prompt_template_file: null
+    qd_mcq_mapper_prompt_template_file: null
+
+    # Windowing + sampling:
+    # - `window_frames`: frames per window (multi-window)
+    # - `single_window=true`: whole media sample as ONE window (ignores window_frames; still capped by sampling_fps/resolution/max_frames)
+    window_frames: 60
+    single_window: false
+    sampling_fps: 2.0
+    resolution: 480
+    max_frames: 100
+
+    vlm_max_tokens: 8192
+    llm_max_tokens: 8192
+    timeout: 600
+    rate_limit: 0
+
+    aggregate_windows: true
+    write_empty_mcq_marker: true
+    # Resume behavior:
+    # - If true: skip windows/samples that already have complete outputs under out_dir.
+    # - Recommended for long batches; keep false for strict re-runs.
+    skip_existing: false
+    # Retry missing required questions per window (LLM-only).
+    retry_missing_questions: true
+    retry_missing_max_rounds: 2
+    # Optional post-check: verify finalized answers with VLM frames.
+    # Supported by: window-vlm-llm, window-direct-vlm, question-driven-vlm-llm.
+    # metadata-llm is LLM-only; schema auto-disables VLM verification for that mode.
+    vlm_verify_enabled: true
+    # Default to reasoning-only verification. Set true only when you want the
+    # verifier to be allowed to change answers under strict visual-evidence rules.
+    vlm_verify_apply_corrections: false
+    # Optional verify prompt override; the runner injects the active verification policy.
+    # Leave null to use the shipped default: cookbooks/shared/prompts/mcq/vlm_verify/verify_prompt.md
+    vlm_verify_prompt_file: null
+    vlm_verify_max_tokens: 8192
+    vlm_verify_temperature: 0.0

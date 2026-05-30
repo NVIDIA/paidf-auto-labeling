@@ -1,0 +1,121 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+[project]
+name = "paidf-auto-labeling"
+version = "1.0.0"
+description = "Auto-labeling tools for video super resolution and detection/tracking"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+
+dependencies = [
+    # Core
+    "einops==0.7.0",
+    "numpy>=2.1.0,<3",
+    "omegaconf==2.3.0",
+    "pydantic==2.12.5",
+    "tqdm>=4.67.1",
+    "opencv-python>=4.10.0,<5",
+    "mediapy==1.2.5",
+    "pillow==12.2.0",
+    "psutil>=7.0.0",
+    # HuggingFace ecosystem
+    "diffusers==0.38.0",
+    "transformers==5.1.0",
+    "huggingface_hub==1.3.0",
+    "safetensors>=0.8.0rc0,<1",
+    # Modeling helpers
+    "rotary-embedding-torch==0.5.3",
+    # Data-enrichment-workflow (API-call dense captioning: video.json / events.json)
+    "ffmpeg-python==0.2.0",
+    "openai==1.61.0",
+    "aiofiles==23.2.1",
+    # Video IO
+    "av==16.1.0",
+    # Remote storage (s3://, msc://, gs://) and NVCF-style sync helpers
+    "multi-storage-client[boto3]==0.36.0",
+    # Detection and tracking dependencies (previously optional extra)
+    # Install our fork that supports Transformers 5.x.
+    # Use a pinned source archive (no `git` executable required in CI).
+    "rfdetr @ https://github.com/minfenli/rf-detr/archive/1ae24a5253c22363d56ed5391ee7fd63b21a2f94.tar.gz",
+    "cython==3.2.4",
+    "pycocotools==2.0.11",
+    "fairscale==0.4.13",
+    # For linear assignment (used by BoostTrack + DeepOCSort). We intentionally require a
+    # single implementation for deterministic builds and license consistency.
+    "lap==0.5.12",
+    "filterpy==1.4.5",
+    "timm==1.0.24",
+    "accelerate==1.12.0",
+    "peft==0.18.1",
+    "ninja==1.13.0",
+    "pandas==2.3.3",
+    "polygraphy==0.49.26",
+    "supervision==0.27.0",
+    "matplotlib==3.10.8",
+]
+
+[dependency-groups]
+dev = [
+    "ruff==0.14.14",
+    "pre-commit==4.5.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+]
+
+[tool.uv]
+# This repo contains scripts, not an installable Python package.
+package = false
+# Mark as managed by uv so vulnerability scanners detect uv usage.
+managed = true
+# Transitive (pytest, rich, ipython); pin floor for CVE-2026-4539 (Pygments ReDoS in AdlLexer, fixed in 2.20.0).
+constraint-dependencies = ["pygments>=2.20.0"]
+# PyTorch must be installed separately with the correct CUDA index.
+# See README.md for instructions.
+# flash-attn also requires special installation (often built from source in CUDA images).
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]  # Line length handled separately
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# Any directory here can be imported by unit tests
+[tool.pytest.ini_options]
+markers = [
+    "e2e_run: mark test as e2e run with real pipeline execution (slow, may need GPU).",
+]
+pythonpath = [
+    ".",
+    "modules",
+    "modules/detection_and_tracking",
+    "modules/sr_runner",
+    "modules/mcq_generation",
+]
+
+[tool.coverage.run]
+source = [
+    ".",
+    "modules",
+    "modules/detection_and_tracking",
+    "modules/sr_runner",
+]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/.venv/*",
+    "*/venv/*",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+    "setup.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+precision = 2

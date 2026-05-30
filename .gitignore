@@ -1,0 +1,29 @@
+.DS_Store
+lightning_logs
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv
+.idea
+.vscode
+
+*.ipynb_checkpoints
+
+# Local data/artifacts (do not push)
+/input
+/output
+
+# Runtime-downloaded weights/artifacts (do not push)
+*.pth
+*.safetensors
+/ckpts
+.coverage
+
+# CI runtime files
+ci_cd_secrets.env
+vault-agent.config
+*.tar
+.sonar/
+htmlcov/

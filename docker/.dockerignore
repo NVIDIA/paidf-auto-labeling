@@ -1,0 +1,12 @@
+**/ckpts/**
+**/output/**
+**/input/**
+**/.cache/**
+**/.git/**
+**/__pycache__/**
+**/*.mp4
+**/*.pth
+**/*.pt
+# Allow required text embedding files for SR inference
+!**/pos_emb.pt
+!**/neg_emb.pt
