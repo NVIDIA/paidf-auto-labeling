@@ -27,7 +27,7 @@ You need:
 
 ```bash
 git clone <repo-url>
-cd unified-pseudo-annotation
+cd paidf-auto-labeling
 make sync
 make run SCRIPT=workflow-runner:main ARGS='--help'
 ```

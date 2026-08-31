@@ -1,5 +1,5 @@
 [project]
-name = "unified-pseudo-annotation"
+name = "paidf-auto-labeling"
 version = "1.1.0"
 description = "Unified framework for annotating video & image data"
 readme = "README.md"

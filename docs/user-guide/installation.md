@@ -39,7 +39,7 @@ them. See [Model Provisioning](model-provisioning.md).
 
 ```bash
 git clone <repo-url>
-cd unified-pseudo-annotation
+cd paidf-auto-labeling
 make sync
 ```
 
