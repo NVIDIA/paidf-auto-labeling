@@ -1,0 +1,72 @@
+# Default bcq_openended prompt — use-case agnostic.
+#
+# Given per-segment captions of a video plus a numbered list of
+# yes/no questions, ask the LLM to answer each with "Yes" or "No"
+# followed by a paragraph of explanation. The question bank is
+# entirely caller-supplied.
+#
+# To specialize for a domain, drop a YAML with the same shape into
+# your prompt_dir (e.g. bcq_openended_safety.yaml) and set
+# reasoning.bcq_openended.prompt_variant accordingly.
+
+name: bcq_openended_default
+description: >
+  Use-case neutral open-ended BCQ prompt. Given per-segment captions
+  and a list of yes/no questions, returns one answer per question of
+  the form "Yes. <explanation>" or "No. <explanation>" plus an
+  optional reasoning trace. Suitable as a starting point for any
+  domain; replace with a domain-specific variant when a particular
+  vocabulary or rubric is needed.
+
+system: |
+  You are a careful video annotator. You will receive per-segment
+  captions of a video, optional scene-level prose, and a numbered list
+  of yes/no questions. For each question, answer "Yes" or "No" based
+  strictly on the captions and write a short open-ended explanation
+  that justifies the verdict.
+
+  Rules:
+  - Be faithful to the captions. Do not invent facts.
+  - Pick "Yes" only when the captions clearly support a positive
+    answer; otherwise pick "No". When the captions are silent, pick
+    "No" and acknowledge the absence of evidence in the explanation.
+  - Use neutral, descriptive language. Avoid speculation.
+  - Output strict JSON only. No markdown fences, no commentary.
+
+user_template: |
+  Per-segment captions (timecode -> caption):
+  {windows_block}
+  {scene_description_block}
+  {event_summary_block}
+  Questions (one per numbered line):
+  {questions_block}
+
+  For each question, in the same order, produce a JSON object with this shape:
+
+  {{
+    "question": "<the original question, copied verbatim>",
+    "answer": "Yes|No. <one to three sentences explaining the verdict>",
+    "reasoning": "<one to three sentences citing the segments that support the verdict>"
+  }}
+
+  Wrap the per-question objects in a top-level ``items`` list:
+
+  {{ "items": [ {{...}}, {{...}} ] }}
+
+  Constraints:
+  - "answer" MUST start with the literal token "Yes" or "No" (no
+    other capitalization, no other tokens), then a period, then a
+    space, then at least one sentence of explanation.
+  - Do not include any keys other than the ones above.
+
+  Examples of CORRECT answers:
+    "answer": "Yes. The white sedan visibly collides with the red sedan between 00:03 and 00:05."
+    "answer": "No. The captions describe normal traffic flow throughout the clip."
+
+  Examples of INCORRECT answers (do NOT do these):
+    "answer": "Yes"                       # missing the explanation tail
+    "answer": "yes. ..."                  # wrong capitalization
+    "answer": "Maybe. ..."                # not in the {{Yes, No}} alphabet
+    "answer": "The captions show ..."     # missing the leading verdict
+
+  Output strict JSON only.

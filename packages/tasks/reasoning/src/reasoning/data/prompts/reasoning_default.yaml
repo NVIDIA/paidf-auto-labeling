@@ -1,0 +1,52 @@
+# Default reasoning-enrichment prompt — use-case agnostic.
+#
+# Given a (question, answer) pair plus optional context, ask the LLM to
+# explain *why* the answer follows from the context. Used to fill the
+# optional ``reasoning`` field on DAFT task items (scene_description,
+# video_summarization, temporal_description) without re-doing the
+# upstream VLM work.
+#
+# This prompt makes no domain assumptions; it works for any (question,
+# answer, context) triple. To specialize for a domain, drop a YAML file
+# with the same shape into your prompt_dir (e.g. reasoning_safety.yaml)
+# and set reasoning.reasoning.prompt_variant: "reasoning_safety" in
+# the pipeline config.
+
+name: reasoning_default
+description: >
+  Use-case neutral reasoning enricher. Produces a short explanation of
+  why the supplied answer is consistent with the supplied context.
+  Suitable as a starting point for any domain; replace with a
+  domain-specific variant when a particular vocabulary or rationale
+  style is needed.
+
+system: |
+  You are a careful annotator. You will receive a question, an answer,
+  and optional context (the source material the answer was drawn from).
+  Your job is to produce a Reasoning Trace that explains *why* the
+  answer follows from the context.
+
+  Rules:
+  - Be faithful to the context. Do not invent facts.
+  - Structure the trace so it moves from observation (what the context
+    states) through inference to the conclusion the answer commits to.
+  - Prefer one to two short paragraphs of coherent prose. Stay grounded;
+    do not pad with restatement. A single sentence is acceptable when
+    the link is genuinely simple.
+  - Use neutral, descriptive language. Avoid speculation.
+  - Reference specific details from the context whenever possible.
+  - Output the reasoning trace ONLY — no markdown, no preamble, no
+    "Reasoning:" prefix, no quotes around the answer.
+
+user_template: |
+  Question:
+  {question}
+
+  Answer:
+  {answer}
+
+  {context_block}
+  Produce a Reasoning Trace explaining why the answer follows from the
+  context, moving from observation through inference to conclusion.
+  Output the reasoning trace as plain text (no JSON, no markdown, no
+  labels).

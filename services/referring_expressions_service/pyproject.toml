@@ -1,0 +1,27 @@
+[project]
+name = "referring-expressions-service"
+version = "1.1.0"
+description = "Standalone service for referring expressions on DAFT instances"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "referring-expressions",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+referring-expressions = { workspace = true }
+
+[project.scripts]
+main = "referring_expressions_service.main:main"
+
+[tool.build.images]
+main = "docker buildx build -t paidf-referring-expressions-service --build-arg PACKAGE_NAME=referring-expressions-service -f services/referring_expressions_service/docker/Dockerfile ."
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,29 +1,53 @@
-.DS_Store
-lightning_logs
+# Python-generated files
 __pycache__/
-*.py[cod]
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
+*.py[oc]
+*.egg-info
+
+# Virtual environments
 .venv
-.idea
-.vscode
+.uv-cache/
 
-*.ipynb_checkpoints
+# Secrets
+.env
+.env.*
+*.env
 
-# Local data/artifacts (do not push)
-/input
-/output
-
-# Runtime-downloaded weights/artifacts (do not push)
-*.pth
-*.safetensors
-/ckpts
+# Coverage
 .coverage
+coverage_report.xml
+test_report.xml
+e2e_report.xml
 
-# CI runtime files
-ci_cd_secrets.env
-vault-agent.config
-*.tar
-.sonar/
-htmlcov/
+# E2E test outputs (pytest --basetemp)
+e2e_artifacts/
+
+# Test Output
+output/
+
+# Local, untracked cookbook overrides holding machine-specific paths/endpoints.
+# Copy a tracked pipeline_*.yaml next to it as *.local.yaml and fill in real paths.
+cookbooks/**/*.local.yaml
+cookbooks/**/*.local.yml
+cookbooks/**/*.local.json
+
+# Multi-view identity images are not shipped in git. Download RSTPReid and copy
+# one identity folder locally; keep the README so users know the source.
+data/input_media/images/image_attribute_augmentations/**
+!data/input_media/images/image_attribute_augmentations/README.md
+
+# Traffic, warehouse, and intersection-frame samples are not shipped in git.
+# Stage them from the NGC VSS pack; keep each folder README.
+data/input_media/videos/traffic_video_analytics/**
+!data/input_media/videos/traffic_video_analytics/README.md
+data/input_media/videos/warehouse_safety/**
+!data/input_media/videos/warehouse_safety/README.md
+data/input_media/images/traffic_intersection_frames/**
+!data/input_media/images/traffic_intersection_frames/README.md
+
+# Legacy Clipchamp H.264 fixture. Stage traffic_video_analytics samples instead.
+data/video.mp4
+
+# Other
+.vscode/
+.codex/*
+!.codex/skills

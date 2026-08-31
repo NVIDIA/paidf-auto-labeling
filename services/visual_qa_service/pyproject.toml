@@ -1,0 +1,38 @@
+[project]
+name = "visual-qa-service"
+version = "1.1.0"
+description = "Service wrapper for the visual QA sidecar task"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "daft-validation",
+    "visual-qa[video]",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+daft-validation = { workspace = true }
+visual-qa = { workspace = true }
+
+[project.scripts]
+main = "visual_qa_service.main:main"
+
+[tool.run.default-args]
+main = [
+    { name = "simple payload", args = "--log-level DEBUG --input-file payloads/simple.jsonl" },
+    { name = "help", args = "--help" },
+]
+
+[tool.build.images]
+build = "docker buildx build -t paidf-visual-qa-service --build-arg PACKAGE_NAME=visual-qa-service -f services/visual_qa_service/docker/Dockerfile ."
+
+[tool.build.image-bases]
+build = "upa-media-base:ubuntu-vp9"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

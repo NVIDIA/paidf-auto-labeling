@@ -1,0 +1,42 @@
+[project]
+name = "reasoning-service"
+version = "1.1.0"
+description = "Service wrapper for opt-in reasoning stages"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "daft-validation",
+    "reasoning[llm]",
+    "pyyaml>=6.0.2,<7",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+daft-validation = { workspace = true }
+reasoning = { workspace = true }
+
+[project.scripts]
+main = "reasoning_service.main:main"
+
+[tool.run.default-args]
+main = [
+    { name = "simple payload", args = "--log-level INFO --input-file payloads/simple.jsonl" },
+    { name = "help", args = "--help" },
+]
+
+[tool.build.images]
+build = "docker buildx build -t paidf-reasoning-service --build-arg PACKAGE_NAME=reasoning-service -f services/reasoning_service/docker/Dockerfile ."
+
+[tool.build.image-bases]
+build = "upa-media-base:ubuntu-input-only"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/reasoning_service"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,0 +1,71 @@
+{
+  "name": "smart_spaces_warehouse_event_verification",
+  "version": "1.1",
+  "$comment": "Smart Spaces warehouse event-verification QA bank. The flat questions array is read by visual_qa, while reasoning reads bcq_openended, mcq_openended, open_qa, and temporal_localization sections. Keep those sections synchronized with the flat questions.",
+  "questions": [
+    {"id": "aes_is_anomalous", "question": "Does this clip contain any abnormal, unsafe, dangerous, or otherwise noteworthy event (i.e., is it NOT a normal, uneventful scene)?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_person_involved", "question": "Is at least one person directly involved in the anomalous or noteworthy event?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_safety_violation", "question": "Does the clip show a safety or policy violation, such as missing protective equipment, unsafe behavior, or unauthorized access?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_ppe_high_vis", "question": "Is at least one person in the clip wearing a high-visibility safety vest or other required high-visibility PPE?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_proper_lifting", "question": "When a person picks up or sets down an object, do they use proper ergonomic lifting technique (bending the knees rather than the waist)?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_security_breach", "question": "Does the clip show a security breach or unauthorized access, such as an unpermitted person or entry into a restricted area?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_injury_or_harm", "question": "Does the event cause, or clearly risk, injury or physical harm to a person?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_property_damage", "question": "Does the event involve damage to property, vehicles, goods, or the environment?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_requires_intervention", "question": "Would the event plausibly require human intervention or an alert, such as a security, medical, or safety response?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_ongoing_at_end", "question": "Is the anomalous event still ongoing at the end of the clip (as opposed to fully resolved)?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_primary_category", "question": "What is the single PRIMARY anomaly category that best describes this clip?", "options": ["traffic accident or crash", "traffic violation", "traffic obstruction", "animal incident", "robbery or mugging", "stealing or shoplifting", "physical fight", "physical abuse", "shooting or gunfire", "riot or large violent disturbance", "vandalism", "fire smoke or explosion", "flooding or tsunami", "tornado or severe windstorm", "avalanche or landslide", "falling objects", "suspicious or dangerous object", "person falling or collapsing", "suspicious running", "warehouse safety violation", "industrial spill or leak", "normal / no anomaly"]},
+    {"id": "aes_operational_task", "question": "Which of the following best describes the primary operational task being performed in the clip?", "options": ["walking or transiting the area", "manual lifting or carrying", "operating a forklift or machinery", "stacking, shelving, or retrieving goods", "loading or unloading", "cleaning or maintenance", "inspecting or monitoring", "idle or standing", "other"]},
+    {"id": "aes_ppe_compliance", "question": "Which of the following best describes the personal protective equipment (PPE) compliance of the people visible in the clip?", "options": ["fully compliant", "partially compliant", "non-compliant", "no people visible", "not applicable"]},
+    {"id": "aes_environment", "question": "What is the primary environment or setting of the clip?", "options": ["indoor", "outdoor", "road or vehicle", "warehouse or industrial", "retail or commercial", "residential", "other"]},
+    {"id": "aes_severity", "question": "How severe is the most significant event in the clip?", "options": ["none", "low", "moderate", "high", "critical"]},
+    {"id": "aes_temporal_extent", "question": "When during the clip does the primary event mainly occur?", "options": ["beginning", "middle", "end", "throughout", "not applicable"]},
+    {"id": "aes_actor_count", "question": "How many people are directly involved in the primary event?", "options": ["none", "one", "two", "three or more"]},
+    {"id": "aes_event_description", "question": "Describe the anomalous or noteworthy event in detail: what happens, who or what is involved, and the sequence of actions. If the scene is normal, state that explicitly."},
+    {"id": "aes_operational_task_desc", "question": "What operational task is being performed by the person or people in the video? Describe what they are doing."},
+    {"id": "aes_incident_category_desc", "question": "What is the type or category of the incident observed in the video, and why? If the scene is routine, state that explicitly."},
+    {"id": "aes_precursors", "question": "Describe what leads up to the event: the precursor actions, conditions, or context immediately before it occurs."},
+    {"id": "aes_consequences", "question": "Describe the outcome or consequences after the event: the resulting state of people, objects, or the scene, and any potential safety risks."},
+    {"id": "aes_search_query", "question": "Write a concise natural-language search query (max 20 words) that a user could type to retrieve this specific anomalous event from a video archive."}
+  ],
+  "bcq_openended": [
+    {"id": "aes_is_anomalous", "question": "Does this clip contain any abnormal, unsafe, dangerous, or otherwise noteworthy event (i.e., is it NOT a normal, uneventful scene)?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_person_involved", "question": "Is at least one person directly involved in the anomalous or noteworthy event?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_safety_violation", "question": "Does the clip show a safety or policy violation, such as missing protective equipment, unsafe behavior, or unauthorized access?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_ppe_high_vis", "question": "Is at least one person in the clip wearing a high-visibility safety vest or other required high-visibility PPE?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_proper_lifting", "question": "When a person picks up or sets down an object, do they use proper ergonomic lifting technique (bending the knees rather than the waist)?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_security_breach", "question": "Does the clip show a security breach or unauthorized access, such as an unpermitted person or entry into a restricted area?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_injury_or_harm", "question": "Does the event cause, or clearly risk, injury or physical harm to a person?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_property_damage", "question": "Does the event involve damage to property, vehicles, goods, or the environment?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_requires_intervention", "question": "Would the event plausibly require human intervention or an alert, such as a security, medical, or safety response?", "options": ["A. Yes", "B. No"]},
+    {"id": "aes_ongoing_at_end", "question": "Is the anomalous event still ongoing at the end of the clip (as opposed to fully resolved)?", "options": ["A. Yes", "B. No"]}
+  ],
+  "mcq_openended": [
+    {"id": "aes_primary_category", "question": "What is the single PRIMARY anomaly category that best describes this clip?", "options": ["traffic accident or crash", "traffic violation", "traffic obstruction", "animal incident", "robbery or mugging", "stealing or shoplifting", "physical fight", "physical abuse", "shooting or gunfire", "riot or large violent disturbance", "vandalism", "fire smoke or explosion", "flooding or tsunami", "tornado or severe windstorm", "avalanche or landslide", "falling objects", "suspicious or dangerous object", "person falling or collapsing", "suspicious running", "warehouse safety violation", "industrial spill or leak", "normal / no anomaly"]},
+    {"id": "aes_operational_task", "question": "Which of the following best describes the primary operational task being performed in the clip?", "options": ["walking or transiting the area", "manual lifting or carrying", "operating a forklift or machinery", "stacking, shelving, or retrieving goods", "loading or unloading", "cleaning or maintenance", "inspecting or monitoring", "idle or standing", "other"]},
+    {"id": "aes_ppe_compliance", "question": "Which of the following best describes the personal protective equipment (PPE) compliance of the people visible in the clip?", "options": ["fully compliant", "partially compliant", "non-compliant", "no people visible", "not applicable"]},
+    {"id": "aes_environment", "question": "What is the primary environment or setting of the clip?", "options": ["indoor", "outdoor", "road or vehicle", "warehouse or industrial", "retail or commercial", "residential", "other"]},
+    {"id": "aes_severity", "question": "How severe is the most significant event in the clip?", "options": ["none", "low", "moderate", "high", "critical"]},
+    {"id": "aes_temporal_extent", "question": "When during the clip does the primary event mainly occur?", "options": ["beginning", "middle", "end", "throughout", "not applicable"]},
+    {"id": "aes_actor_count", "question": "How many people are directly involved in the primary event?", "options": ["none", "one", "two", "three or more"]}
+  ],
+  "open_qa": [
+    {"id": "aes_event_description", "question": "Describe the anomalous or noteworthy event in detail: what happens, who or what is involved, and the sequence of actions. If the scene is normal, state that explicitly."},
+    {"id": "aes_operational_task_desc", "question": "What operational task is being performed by the person or people in the video? Describe what they are doing."},
+    {"id": "aes_incident_category_desc", "question": "What is the type or category of the incident observed in the video, and why? If the scene is routine, state that explicitly."},
+    {"id": "aes_precursors", "question": "Describe what leads up to the event: the precursor actions, conditions, or context immediately before it occurs."},
+    {"id": "aes_consequences", "question": "Describe the outcome or consequences after the event: the resulting state of people, objects, or the scene, and any potential safety risks."},
+    {"id": "aes_search_query", "question": "Write a concise natural-language search query (max 20 words) that a user could type to retrieve this specific anomalous event from a video archive."}
+  ],
+  "temporal_localization": [
+    "When does a person slipping, tripping, or falling occur?\nAnswer with the start and end timestamps in the format {\"start\": \"MM:SS\", \"end\": \"MM:SS\"}.",
+    "When does the first appearance of smoke or fire in the scene occur?\nAnswer with the start and end timestamps in the format {\"start\": \"MM:SS\", \"end\": \"MM:SS\"}.",
+    "When does a forklift or vehicle spilling or dropping its load occur?\nAnswer with the start and end timestamps in the format {\"start\": \"MM:SS\", \"end\": \"MM:SS\"}.",
+    "When do boxes or items falling from a rack or shelf occur?\nAnswer with the start and end timestamps in the format {\"start\": \"MM:SS\", \"end\": \"MM:SS\"}.",
+    "When does an ergonomically unsafe lift or material-handling action by a worker occur?\nAnswer with the start and end timestamps in the format {\"start\": \"MM:SS\", \"end\": \"MM:SS\"}.",
+    "When does distracted walking while carrying or looking at a handheld object occur?\nAnswer with the start and end timestamps in the format {\"start\": \"MM:SS\", \"end\": \"MM:SS\"}.",
+    "When does work or material handling performed without the required protective equipment occur?\nAnswer with the start and end timestamps in the format {\"start\": \"MM:SS\", \"end\": \"MM:SS\"}.",
+    "When does unauthorized access to a restricted area, cabinet, or container occur?\nAnswer with the start and end timestamps in the format {\"start\": \"MM:SS\", \"end\": \"MM:SS\"}.",
+    "When does a near-miss or collision between a person and equipment or a vehicle occur?\nAnswer with the start and end timestamps in the format {\"start\": \"MM:SS\", \"end\": \"MM:SS\"}.",
+    "When does the onset of an abnormal, unsafe, or otherwise noteworthy event occur?\nAnswer with the start and end timestamps in the format {\"start\": \"MM:SS\", \"end\": \"MM:SS\"}."
+  ]
+}

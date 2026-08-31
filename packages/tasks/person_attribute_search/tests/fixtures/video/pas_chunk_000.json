@@ -1,0 +1,53 @@
+{
+  "chunk_id": "chunk_000",
+  "source_annotation": "../vlm_annotations/chunk_000.json",
+  "pas": {
+    "n_people": 1,
+    "people": [
+      {
+        "track_id": 2,
+        "detection_score": 0.8552,
+        "duration_sec": 5.667,
+        "first_frame": 8,
+        "last_frame": 143,
+        "n_crops": 16,
+        "attributes": {
+          "age": "adult",
+          "gender": "male",
+          "skin tone": "light",
+          "body shape": "normal",
+          "hair length": "short",
+          "hair style": "straight",
+          "hair color": "brown",
+          "top outer length": "sleeveless",
+          "top outer type": "vest",
+          "top outer color": "yellow",
+          "top inner length": "long sleeve",
+          "top inner type": "sweater",
+          "top inner color": "black",
+          "bottom length": "long",
+          "bottom type": "pants",
+          "bottom color": "black",
+          "shoe type": "boots",
+          "shoe color": "black",
+          "carrying": "none",
+          "headwear": "yes",
+          "headwear type": "cap",
+          "headwear color": "yellow",
+          "mask": "no",
+          "glasses": "no",
+          "motion or action": "walking",
+          "potential anomaly": "no",
+          "anomaly type": "none",
+          "natural language caption": "An adult male with short brown hair is seen walking in a warehouse setting. He is wearing a sleeveless yellow high-visibility safety vest that has reflective grey stripes and a small, unidentifiable dark logo on the left chest. Beneath the vest, he wears a long-sleeved black shirt. His lower body is dressed in long black pants, and he is wearing black boots. For protection, he has a yellow hard hat on his head."
+        },
+        "natural_language_caption": "An adult male with short brown hair is seen walking in a warehouse setting. He is wearing a sleeveless yellow high-visibility safety vest that has reflective grey stripes and a small, unidentifiable dark logo on the left chest. Beneath the vest, he wears a long-sleeved black shirt. His lower body is dressed in long black pants, and he is wearing black boots. For protection, he has a yellow hard hat on his head.",
+        "n_crops_in_chunk": 13,
+        "first_frame_in_chunk": 8,
+        "last_frame_in_chunk": 119,
+        "crop_dir": "../tracks/crops/track_0002"
+      }
+    ]
+  },
+  "crop_root": "../tracks/crops"
+}

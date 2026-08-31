@@ -1,0 +1,35 @@
+[project]
+name = "super-resolution-service"
+version = "1.1.0"
+description = "Standalone service and container wrapper for the super-resolution task"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "daft-validation",
+    "super-resolution[seedvr2]",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+daft-validation = { workspace = true }
+super-resolution = { workspace = true }
+
+[project.scripts]
+main = "super_resolution_service.main:main"
+
+[tool.run.default-args]
+main = [
+    { name = "simple payload", args = "--disabled --input-file payloads/simple.jsonl" },
+    { name = "help", args = "--help" },
+]
+
+[tool.build.images]
+build = "docker buildx build -t paidf-super-resolution-service --build-arg PACKAGE_NAME=super-resolution-service -f services/super_resolution_service/docker/Dockerfile ."
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,0 +1,30 @@
+[project]
+name = "reasoning"
+version = "1.1.0"
+description = "DAFT v3 exporters, converters, prompt adapters, and scene writers"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0.2,<7",
+    "regex>=2026.1.15",
+]
+
+[project.optional-dependencies]
+llm = [
+    "core[llm]",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/reasoning"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

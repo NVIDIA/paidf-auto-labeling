@@ -1,0 +1,187 @@
+# Smart Spaces: warehouse event verification and reasoning.
+#
+# This scenario uses the warehouse sample clips (staged from NGC, not in git)
+# to verify safety and operational events, then produces reasoning artifacts
+# for the same scene.
+# It intentionally does not run person_attribute_search or training_export.
+
+pipeline: video
+workflow:
+  nodes:
+    detection_and_tracking:
+      stage: detection_and_tracking
+      # --sam3-prompts is a fixed closed list, unlike the VLM captioning/VQA
+      # prompts which can describe any visible anomaly without a predefined
+      # vocabulary. This list is tuned for THIS scenario's indoor warehouse
+      # footage (material handling, PPE, security/theft) and deliberately
+      # omits outdoor/road-scene objects (car, truck, motorcycle) that are
+      # unlikely on a warehouse floor. If you point this cookbook shape at a
+      # different Smart Spaces scenario (outdoor yard, retail floor,
+      # residential), swap this list for objects plausible in that setting.
+      args:
+        - --sam3-prompts
+        - person
+        - forklift
+        - ladder
+        - pallet
+        - box
+        - rack
+        - bin
+        - barrel
+        - animal
+        - high-visibility vest
+        - hard hat
+        - bag
+        - knife
+        - --sam3-score-threshold-detection
+        - "0.5"
+        - --sam3-new-det-thresh
+        - "0.6"
+        - --sam3-write-annotated-video
+        - --sam3-annotated-video-shape
+        - box
+        - --sam3-annotated-video-label-style
+        - id
+        - --sam3-annotated-video-mask-opacity
+        - "5"
+    captioning:
+      stage: captioning
+      needs:
+        - detection_and_tracking
+      args:
+        - --input-source
+        - original
+        - --prompt-file
+        - ../prompts/dense_caption/smart_spaces_scene_prompt.md
+        - --window-seconds
+        - "4.0"
+        - --window-frames
+        - "0"
+        - --remainder-threshold
+        - "0"
+        - --sampling-fps
+        - "2.0"
+        - --max-frames
+        - "24"
+        - --resolution
+        - "768"
+    event_verification_visual_qa:
+      stage: visual_qa
+      needs:
+        - captioning
+      args:
+        - --generation-mode
+        - window-vlm-llm
+        - --input-source
+        - original
+        - --question-bank-file
+        - ../question_bank.warehouse_event_verification_qa.json
+        - --evidence-prompt-file
+        - ../prompts/mcq/window_vlm_llm/scene_prompt.md
+        - --prompt-file
+        - ../prompts/mcq/window_vlm_llm/mcq_prompt.md
+        - --single-window
+        - --include-reasoning
+        - --max-frames
+        - "16"
+        - --sampling-fps
+        - "3.0"
+        - --resolution
+        - "768"
+        - --temperature
+        - "0"
+        - --raw-windows-sidecar
+        - visual_qa_event_verification/windows.json
+        - --output-items-sidecar
+        - visual_qa_event_verification/items.json
+        - --output-windows-sidecar
+        - visual_qa_event_verification/windows.normalized.json
+        - --state-artifacts-key
+        - visual_qa_event_verification
+    reasoning:
+      stage: reasoning
+      needs:
+        - event_verification_visual_qa
+
+runtime:
+  model_cache_path: ckpts
+  gpu_ids: all
+
+container:
+  user: auto
+  images:
+    detection_and_tracking: paidf-detection-and-tracking-sam3-service
+    captioning: paidf-captioning-service
+    visual_qa: paidf-visual-qa-service
+    reasoning: paidf-reasoning-service
+  env:
+    - SAM3_MODEL_PATH=/models/sam3
+    - NVIDIA_API_KEY
+  mounts:
+    - /path/to/sam3/weights:/models/sam3:ro
+
+data:
+  - inputs:
+      media_path: data/input_media/videos/warehouse_safety
+    output:
+      out_dir: output/auto_labeling/smart_spaces/warehouse_event_reasoning
+
+endpoints:
+  vlm:
+    url: http://localhost:8081/v1
+    model: <served-vlm-model>
+  llm:
+    url: http://localhost:8082/v1
+    model: <served-llm-model>
+
+detection_and_tracking:
+  enabled: true
+  model: sam3
+  tracker: sam3
+  classes:
+    - person
+    - forklift
+    - pallet
+    - box
+
+captioning:
+  enabled: true
+
+visual_qa:
+  enabled: true
+
+reasoning:
+  anomaly:
+    enabled: true
+    include_person_attributes: false
+  reasoning:
+    enabled: true
+    targets:
+      - scene_description
+      - video_summarization
+      - open_qa
+      - mcq_openended
+      - bcq_openended
+      - causal_linkage
+  events:
+    enabled: true
+    prompt_variant: events_from_chunks_smart_spaces
+    prompt_dir: ../prompts/reasoning
+  msted:
+    enabled: true
+  temporal_localization:
+    enabled: true
+    query_file: ../question_bank.warehouse_event_verification_qa.json
+  open_qa:
+    enabled: true
+    question_file: ../question_bank.warehouse_event_verification_qa.json
+  mcq_openended:
+    enabled: true
+    item_file: ../question_bank.warehouse_event_verification_qa.json
+  bcq_openended:
+    enabled: true
+    question_file: ../question_bank.warehouse_event_verification_qa.json
+  causal_linkage:
+    enabled: true
+    mode: auto_from_events
+    max_pairs_auto: 6

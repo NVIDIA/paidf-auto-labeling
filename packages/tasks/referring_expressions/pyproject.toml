@@ -1,0 +1,21 @@
+[project]
+name = "referring-expressions"
+version = "1.1.0"
+description = "Referring expressions from known DAFT instances via VLM (boxes → language)"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "pillow>=12.2.0",
+    "pydantic>=2.0.0",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

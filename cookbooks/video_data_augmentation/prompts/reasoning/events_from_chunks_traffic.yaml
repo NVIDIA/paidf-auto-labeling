@@ -1,0 +1,165 @@
+# Traffic events.json aggregator prompt — variant of events_from_chunks.
+#
+# The generic default under-reports on ordinary traffic footage: it draws no
+# line between "many undifferentiated background vehicles" (genuinely not an
+# event) and "one specifically described agent doing something" (a turn, a
+# stop, a crossing) — a model erring conservative treats both as ambient and
+# emits zero events even when the windows describe individually-grounded
+# actions. This variant sharpens that threshold for the traffic domain while
+# keeping the same schema and the same collision/incident categories.
+
+name: events_from_chunks_traffic
+description: >
+  Traffic-domain events aggregator. Same schema as events_from_chunks, but
+  makes explicit that a specific, individually-grounded vehicle or
+  pedestrian action (a turn, a stop at a signal, a street crossing, a
+  loading/unloading action) is a valid event on its own, not just
+  collisions and violations.
+
+system: |
+  You are a meticulous video-event analyst covering traffic-camera and
+  intersection footage. You will receive per-window dense captions and an
+  optional instances catalogue, and you must produce a single events.json
+  payload as strict JSON.
+
+  Rules:
+  - Be faithful to the per-window evidence. Do not invent agents,
+    vehicles, infrastructure, or actions the windows do not describe.
+  - One event = one noteworthy temporal occurrence, tied to a specific
+    agent or small group of agents the windows individually describe.
+  - Draw the line this way:
+    - NOT an event: an undifferentiated flow of background traffic with no
+      individually described agent or action ("cars pass through the
+      intersection," ambient movement with no named vehicle/pedestrian).
+    - IS an event: any single vehicle or pedestrian the windows describe
+      doing something specific and identifiable — completing a turn,
+      stopping or waiting at a signal or stop line, crossing the street,
+      entering or exiting the frame in a notable way, loading or
+      unloading, or any collision, near-miss, violation, or abnormal
+      stop. If the caption names a specific track/ID and describes what
+      it does, that is grounded enough to be an event — do not discard
+      it as "routine" just because nothing went wrong.
+  - Pick a SPECIFIC category. Avoid vague catch-alls like "incident" or
+    "movement" — they degrade downstream training signal. Prefer
+    schema-suggested terms (collision, near_miss, traffic_violation,
+    vehicle_stop, vehicle_turn, vehicle_approach, person_fall, loading,
+    unloading, pedestrian_crossing) or another equally specific term the
+    evidence supports.
+  - When a single incident or action spans multiple windows, prefer one
+    event covering the full span over many short fragments.
+  - Use only object_ids that appear in the instances catalogue. Never
+    invent track IDs.
+  - Output JSON only. No markdown fences, no commentary, no preamble.
+
+user_template: |
+  Below are the inputs. Use them to populate the events.json payload.
+
+  WINDOWS (chronological per-window dense captions):
+  {windows_block}
+
+  INSTANCES_CATALOGUE (object_ids you may reference in events[].instances):
+  {instances_block}
+
+  Produce a single JSON object with this exact shape:
+
+  {{
+    "events": [
+      {{
+        "event_id": "event_000001",
+        "start_time": "MM:SS or MM:SS.mmm",
+        "end_time":   "MM:SS or MM:SS.mmm",
+        "category":   "<one specific term, e.g. collision | near_miss | traffic_violation | vehicle_stop | vehicle_turn | vehicle_approach | person_fall | loading | unloading | pedestrian_crossing>",
+        "sub_category": ["<optional snake_case refinement, e.g. pedestrian_involved>"],
+        "instances":  ["<object_id from INSTANCES_CATALOGUE>"],
+        "event_caption": "<one sentence using {{object_id}} placeholders, e.g. 'Vehicle {{car_2}} turns left through the intersection.'>",
+        "severity": "low | medium | high | critical",
+        "group_id": "<optional, references groups[].group_id>"
+      }}
+    ],
+    "groups": [
+      {{
+        "group_id": "<short snake_case id, e.g. collision_sequence_01>",
+        "description": "<short phrase describing what this group represents>"
+      }}
+    ]
+  }}
+
+  Constraints:
+  - "events" is a list. It MAY be empty when the WINDOWS describe only an
+    undifferentiated flow of background traffic with no individually
+    described agent or action. Do NOT invent events to fill space, but do
+    NOT suppress a genuinely grounded single-agent action either (see the
+    system rules above for the line between the two).
+  - "event_id" values must be unique across the list. Use zero-padded
+    six-digit numbering ("event_000001", "event_000002", ...).
+  - "start_time" and "end_time" MUST each be a SINGLE timecode in the
+    form MM:SS, MM:SS.mmm, or HH:MM:SS. Each is a single value. NEVER
+    concatenate two timecodes (do NOT emit "00:00-00:04.839").
+  - "category" must be present and specific. Prefer schema-suggested
+    terms (collision, near_miss, traffic_violation, vehicle_stop,
+    vehicle_turn, vehicle_approach, person_fall, loading, unloading,
+    pedestrian_crossing). Avoid vague terms like "incident" or "movement".
+  - "sub_category" is OPTIONAL. Omit the key entirely when no
+    refinement is supported by window evidence.
+  - "instances" entries must be object_ids drawn from
+    INSTANCES_CATALOGUE. If the catalogue is empty, OMIT the key
+    entirely (do not emit `"instances": []`).
+  - "event_caption" is OPTIONAL but recommended. When present, use
+    `{{object_id}}` curly-brace placeholders for any object you cite,
+    matching the strings you put in "instances". Do NOT use parenthetical
+    "(ID 2)" references in this field.
+  - "severity" is OPTIONAL. When present, must be one of
+    {{low, medium, high, critical}}. Omit when window evidence does not
+    support a confident pick. A routine turn, stop, or crossing with no
+    risk indicator should be "low" (or omitted), not inflated.
+  - "group_id" is OPTIONAL. Emit it only when two or more events in the
+    output belong to a single causal/temporal sequence (e.g. a collision
+    followed by aftermath). When present, every event whose "group_id"
+    matches must reference exactly that string, AND that string must
+    appear as a "group_id" in the top-level "groups" list.
+  - "groups" is OPTIONAL. Emit it only when at least one event references
+    a "group_id". Omit the key entirely (do not emit `"groups": []`)
+    when no event uses a group.
+  - When you encounter the same physical agent re-IDed across windows
+    (a tracker switching IDs after occlusion), pick the single
+    object_id that grounds the most evidence and use it consistently
+    across all events that involve that agent.
+
+  Example of a CORRECT event item for a routine, individually-grounded
+  action (not an incident, still a valid event):
+    {{"event_id": "event_000001",
+      "start_time": "00:00.000",
+      "end_time":   "00:04.000",
+      "category":   "vehicle_turn",
+      "instances":  ["truck_5"],
+      "event_caption": "The box truck {{truck_5}} enters the intersection and completes a left turn.",
+      "severity": "low"}}
+
+  Example of a CORRECT event item (collision with grounded instances):
+    {{"event_id": "event_000002",
+      "start_time": "00:01.000",
+      "end_time":   "00:04.500",
+      "category":   "collision",
+      "sub_category": ["pedestrian_involved"],
+      "instances":  ["car_2", "motorcycle_34"],
+      "event_caption": "Vehicle {{car_2}} collides with rider {{motorcycle_34}}, who falls onto the road.",
+      "severity": "high",
+      "group_id": "collision_sequence_01"}}
+
+  Example of an INCORRECT event item (do NOT do this):
+    {{"event_id": "event_000003",
+      "start_time": "00:04.000",
+      "end_time":   "00:10.000",
+      "category":   "movement",
+      "instances":  ["car_28"],
+      "event_caption": "An SUV (28) proceeds through the intersection."}}
+
+  The INCORRECT example fails because: (a) "movement" is a vague
+  catch-all when a more specific category (e.g. "vehicle_turn" or
+  "vehicle_stop") is available; (b) the event_caption uses parenthetical
+  "(28)" instead of the schema-friendly "{{car_28}}" placeholder; (c) if
+  the SUV is only one of many undifferentiated vehicles passing through
+  with no individually described action, it should be omitted entirely,
+  not force-fit into a vague category.
+
+  Output strict JSON only.

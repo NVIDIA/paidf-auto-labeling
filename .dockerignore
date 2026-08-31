@@ -1,24 +1,19 @@
-**/ckpts/**
-**/output/**
-**/input/**
-**/.cache/**
-**/.git/**
-**/__pycache__/**
-**/*.mp4
-**/*.pth
-**/*.pt
+**/.git
+**/.venv                                                                                                                                                                                                                                                                                                                                  
+**/.env*        
+**/.mypy_cache
+**/.pytest_cache                                                                                                                                                                                                                                                                                                                          
+**/.ruff_cache  
+**/.vscode                                                                                                                                                                                                                                                                                                                                
+**/.coverage    
+**/coverage_report.xml
+**/test_report.xml    
+**/output                                                                                                                                                                                                                                                                                                                                 
+**/__pycache__
+*.egg-info
 
-# Local Python virtualenvs (dev machines) — never want these baked into the
-# image (~7 GB of CUDA libs etc.), the image builds its own /opt/venv.
-.venv/
-**/.venv/
-venv/
-**/venv/
-
-# Dev/test caches, IDE / agent tool config — not needed inside the image.
-.ruff_cache/
-.pytest_cache/
-.mypy_cache/
+# Dev/test caches, IDE / agent tool config — not needed inside images.
 .codex/
+.agents/
 .claude/
 .cursor/

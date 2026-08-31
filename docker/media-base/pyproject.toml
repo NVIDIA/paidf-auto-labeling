@@ -1,0 +1,17 @@
+[project]
+name = "upa-media-base"
+version = "1.1.0"
+description = "Shared media-toolchain base images (FFmpeg + OpenCV/PyAV wheels)."
+requires-python = ">=3.12"
+
+# Not a Python package — this member only registers Docker base-image build
+# targets. uv should not try to build or install it.
+[tool.uv]
+package = false
+
+# One target per (base family, profile). Service builder stages start FROM these
+# so the media stack is compiled once instead of per service. CI passes the real
+# registry tag via --tag and the platform/push flags via scripts/build.py.
+[tool.build.images]
+ubuntu-input-only = "docker buildx build -t upa-media-base:ubuntu-input-only --build-arg BASE_IMAGE=nvcr.io/nvidia/base/ubuntu:noble-20260217@sha256:57a7daab5579d4b4cfbe25b59dc9d22d0c4cec24e5608523e77fd5f12e9da51a --build-arg PROFILE=input-only -f docker/media-base/Dockerfile ."
+ubuntu-vp9 = "docker buildx build -t upa-media-base:ubuntu-vp9 --build-arg BASE_IMAGE=nvcr.io/nvidia/base/ubuntu:noble-20260217@sha256:57a7daab5579d4b4cfbe25b59dc9d22d0c4cec24e5608523e77fd5f12e9da51a --build-arg PROFILE=vp9-output -f docker/media-base/Dockerfile ."

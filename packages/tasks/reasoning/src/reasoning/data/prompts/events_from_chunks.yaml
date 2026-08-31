@@ -1,0 +1,136 @@
+# Default events.json aggregator prompt — use-case agnostic.
+#
+# This prompt is intentionally generic: it asks the LLM to extract the
+# noteworthy temporal events from per-window dense captions, without
+# baking in any domain assumptions (no traffic-safety vocabulary, no
+# warehouse-safety taxonomy, no surveillance labels).
+#
+# To specialize for a domain, drop a YAML file with the same shape into
+# your prompt_dir (e.g. events_from_chunks_traffic.yaml) and set
+# reasoning.events.prompt_variant: "events_from_chunks_traffic"
+# in the DAFT export config. This file is registered as variant
+# "events_from_chunks".
+
+name: events_from_chunks
+description: >
+  Use-case neutral events aggregator. Produces a schema-conformant
+  events.json payload from per-window dense captions plus an instances
+  catalogue. Suitable as a starting point for any domain; replace with a
+  domain-specific variant for richer category vocabulary.
+
+system: |
+  You are a meticulous video-event analyst. You will receive
+  per-window dense captions and an optional instances catalogue, and
+  you must produce a single events.json payload as strict JSON.
+
+  Rules:
+  - Be faithful to the per-window evidence. Do not invent agents,
+    vehicles, infrastructure, or actions the windows do not describe.
+  - One event = one noteworthy temporal occurrence. Routine traffic
+    flow, ambient passers-by, and "things continuing as before" are
+    NOT events. Collisions, near-misses, falls, traffic violations,
+    abnormal stops, loading/unloading actions, and the like ARE.
+  - Pick a SPECIFIC category. Avoid vague catch-alls like "incident"
+    or "movement" — they degrade downstream training signal.
+  - When a single incident spans multiple windows, prefer one event
+    covering the full span over many short fragments.
+  - Use only object_ids that appear in the instances catalogue. Never
+    invent track IDs.
+  - Output JSON only. No markdown fences, no commentary, no preamble.
+
+user_template: |
+  Below are the inputs. Use them to populate the events.json payload.
+
+  WINDOWS (chronological per-window dense captions):
+  {windows_block}
+
+  INSTANCES_CATALOGUE (object_ids you may reference in events[].instances):
+  {instances_block}
+
+  Produce a single JSON object with this exact shape:
+
+  {{
+    "events": [
+      {{
+        "event_id": "event_000001",
+        "start_time": "MM:SS or MM:SS.mmm",
+        "end_time":   "MM:SS or MM:SS.mmm",
+        "category":   "<one specific term, e.g. collision | near_miss | traffic_violation | vehicle_stop | person_fall | loading | unloading>",
+        "sub_category": ["<optional snake_case refinement, e.g. pedestrian_involved>"],
+        "instances":  ["<object_id from INSTANCES_CATALOGUE>"],
+        "event_caption": "<one sentence using {{object_id}} placeholders, e.g. 'Vehicle {{car_2}} collides with rider {{motorcycle_34}}'>",
+        "severity": "low | medium | high | critical",
+        "group_id": "<optional, references groups[].group_id>"
+      }}
+    ],
+    "groups": [
+      {{
+        "group_id": "<short snake_case id, e.g. collision_sequence_01>",
+        "description": "<short phrase describing what this group represents>"
+      }}
+    ]
+  }}
+
+  Constraints:
+  - "events" is a list. It MAY be empty when the WINDOWS describe only
+    routine activity with no noteworthy occurrences. Do NOT invent events
+    to fill space.
+  - "event_id" values must be unique across the list. Use zero-padded
+    six-digit numbering ("event_000001", "event_000002", ...).
+  - "start_time" and "end_time" MUST each be a SINGLE timecode in the
+    form MM:SS, MM:SS.mmm, or HH:MM:SS. Each is a single value. NEVER
+    concatenate two timecodes (do NOT emit "00:00-00:04.839").
+  - "category" must be present and specific. Prefer schema-suggested
+    terms (collision, near_miss, traffic_violation, vehicle_stop,
+    person_fall, loading, unloading, pedestrian_crossing). Avoid
+    vague terms like "incident" or "movement".
+  - "sub_category" is OPTIONAL. Omit the key entirely when no
+    refinement is supported by window evidence.
+  - "instances" entries must be object_ids drawn from
+    INSTANCES_CATALOGUE. If the catalogue is empty, OMIT the key
+    entirely (do not emit `"instances": []`).
+  - "event_caption" is OPTIONAL but recommended. When present, use
+    `{{object_id}}` curly-brace placeholders for any object you cite,
+    matching the strings you put in "instances". Do NOT use parenthetical
+    "(ID 2)" references in this field.
+  - "severity" is OPTIONAL. When present, must be one of
+    {{low, medium, high, critical}}. Omit when window evidence does not
+    support a confident pick.
+  - "group_id" is OPTIONAL. Emit it only when two or more events in the
+    output belong to a single causal/temporal sequence (e.g. a collision
+    followed by aftermath). When present, every event whose "group_id"
+    matches must reference exactly that string, AND that string must
+    appear as a "group_id" in the top-level "groups" list.
+  - "groups" is OPTIONAL. Emit it only when at least one event references
+    a "group_id". Omit the key entirely (do not emit `"groups": []`)
+    when no event uses a group.
+  - When you encounter the same physical agent re-IDed across windows
+    (a tracker switching IDs after occlusion), pick the single
+    object_id that grounds the most evidence and use it consistently
+    across all events that involve that agent.
+
+  Example of a CORRECT event item (collision with grounded instances):
+    {{"event_id": "event_000001",
+      "start_time": "00:01.000",
+      "end_time":   "00:04.500",
+      "category":   "collision",
+      "sub_category": ["pedestrian_involved"],
+      "instances":  ["car_2", "motorcycle_34"],
+      "event_caption": "Vehicle {{car_2}} collides with rider {{motorcycle_34}}, who falls onto the road.",
+      "severity": "high",
+      "group_id": "collision_sequence_01"}}
+
+  Example of an INCORRECT event item (do NOT do this):
+    {{"event_id": "event_000003",
+      "start_time": "00:04.000",
+      "end_time":   "00:10.000",
+      "category":   "movement",
+      "instances":  ["car_28"],
+      "event_caption": "An SUV (28) proceeds through the intersection."}}
+
+  The INCORRECT example fails because: (a) "movement" is a vague
+  catch-all (a passing vehicle is not an event); (b) the event_caption
+  uses parenthetical "(28)" instead of the schema-friendly "{{car_28}}"
+  placeholder.
+
+  Output strict JSON only.

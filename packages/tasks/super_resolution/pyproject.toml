@@ -1,0 +1,32 @@
+[project]
+name = "super-resolution"
+version = "1.1.0"
+description = "SeedVR2 super-resolution task for PAIDF Auto-Labeling"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+seedvr2 = [
+    "av>=16.1.0,<17",
+    "diffusers>=0.38.0,<0.39",
+    "einops>=0.7.0,<1",
+    "mediapy>=1.2.5,<2",
+    "numpy>2,<2.3",
+    "omegaconf>=2.3.0,<3",
+    "rotary-embedding-torch>=0.5.3,<0.6",
+    "torchvision>=0.25.0,<0.26",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

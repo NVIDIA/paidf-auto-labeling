@@ -1,0 +1,227 @@
+# Video Visual Attribute Search with event verification and reasoning.
+#
+# The event-verification Visual QA pass owns the flat DAFT QA outputs consumed by
+# reasoning and training export. A separate per-track Visual QA pass inspects the
+# person crops emitted by detection/tracking and writes namespaced canonical
+# windows for the PAS assembly stage.
+
+pipeline: video
+workflow:
+  nodes:
+    detection_and_tracking:
+      stage: detection_and_tracking
+      args:
+        - --sam3-prompts
+        - person
+        - --sam3-score-threshold-detection
+        - "0.5"
+        - --sam3-new-det-thresh
+        - "0.6"
+        - --extract-crops
+        - --crop-classes
+        - person
+        - --crops-per-track
+        - "16"
+        - --crop-padding
+        - "0.1"
+        - --min-crop-size
+        - "48"
+        - --min-detection-score
+        - "0.5"
+    captioning:
+      stage: captioning
+      needs:
+        - detection_and_tracking
+      args:
+        - --input-source
+        - original
+        - --window-seconds
+        - "4.0"
+        - --window-frames
+        - "0"
+        - --remainder-threshold
+        - "0"
+        - --sampling-fps
+        - "2.0"
+        - --max-frames
+        - "24"
+        - --resolution
+        - "768"
+    event_verification_visual_qa:
+      stage: visual_qa
+      needs:
+        - captioning
+      args:
+        - --generation-mode
+        - window-vlm-llm
+        - --input-source
+        - original
+        - --question-bank-file
+        - ../question_bank.event_verification_qa.json
+        - --single-window
+        # Preserve reasoning traces and the DAFT task outputs used downstream.
+        - --include-reasoning
+        - --max-frames
+        - "16"
+        - --sampling-fps
+        - "3.0"
+        - --resolution
+        - "768"
+        - --temperature
+        - "0"
+        - --raw-windows-sidecar
+        - visual_qa_event_verification/windows.json
+        - --output-items-sidecar
+        - visual_qa_event_verification/items.json
+        - --output-windows-sidecar
+        - visual_qa_event_verification/windows.normalized.json
+        - --state-artifacts-key
+        - visual_qa_event_verification
+    reasoning:
+      stage: reasoning
+      needs:
+        - event_verification_visual_qa
+    person_attribute_visual_qa:
+      stage: visual_qa
+      needs:
+        - reasoning
+      args:
+        - --generation-mode
+        - window-direct-vlm
+        - --question-bank-file
+        - ../question_bank.person_attributes.json
+        - --track-crops-sidecar
+        - detection_and_tracking/tracks.json
+        - --max-crops-per-track
+        - "12"
+        - --resolution
+        - "896"
+        - --temperature
+        - "0"
+        - --raw-windows-sidecar
+        - visual_qa_per_track/windows.json
+        - --output-items-sidecar
+        - visual_qa_per_track/items.json
+        - --output-windows-sidecar
+        - visual_qa_per_track/windows.normalized.json
+        - --state-artifacts-key
+        - visual_qa_per_track
+        - --no-flat-qa-tasks
+    person_attribute_search:
+      stage: person_attribute_search
+      needs:
+        - person_attribute_visual_qa
+    training_export:
+      stage: training_export
+      needs:
+        - person_attribute_search
+
+runtime:
+  model_cache_path: ckpts
+  gpu_ids: all
+
+container:
+  user: auto
+  images:
+    detection_and_tracking: paidf-detection-and-tracking-sam3-service
+    captioning: paidf-captioning-service
+    visual_qa: paidf-visual-qa-service
+    reasoning: paidf-reasoning-service
+    person_attribute_search: paidf-event-and-person-attribute-search-service
+    training_export: paidf-training-export-service
+  env:
+    - SAM3_MODEL_PATH=/models/sam3
+    - NVIDIA_API_KEY
+  mounts:
+    - /path/to/sam3/weights:/models/sam3:ro
+
+data:
+  - inputs:
+      media_path: data/input_media/videos/warehouse_safety/warehouse_safety_0000.mp4
+    output:
+      out_dir: output/auto_labeling/video_pas_reasoning
+
+# These defaults target non-reasoning instruct models. Thinking models generally
+# need larger max-token budgets in the reasoning substages below.
+endpoints:
+  vlm:
+    url: http://localhost:8081/v1
+    model: <served-vlm-model>
+  llm:
+    url: http://localhost:8082/v1
+    model: <served-llm-model>
+
+detection_and_tracking:
+  enabled: true
+  model: sam3
+  tracker: sam3
+  classes:
+    - person
+
+captioning:
+  enabled: true
+
+visual_qa:
+  enabled: true
+
+reasoning:
+  anomaly:
+    enabled: true
+    include_person_attributes: false
+  reasoning:
+    enabled: true
+    targets:
+      - scene_description
+      - video_summarization
+      - open_qa
+      - mcq_openended
+      - bcq_openended
+      - causal_linkage
+  events:
+    enabled: true
+  msted:
+    enabled: true
+  temporal_localization:
+    enabled: true
+    query_file: ../question_bank.event_verification_qa.json
+  open_qa:
+    enabled: true
+    question_file: ../question_bank.event_verification_qa.json
+  mcq_openended:
+    enabled: true
+    item_file: ../question_bank.event_verification_qa.json
+  bcq_openended:
+    enabled: true
+    question_file: ../question_bank.event_verification_qa.json
+  causal_linkage:
+    enabled: true
+    mode: auto_from_events
+    max_pairs_auto: 6
+
+person_attribute_search:
+  enabled: true
+  dataset: upa
+  tracks_sidecars:
+    - detection_and_tracking/tracks.json
+  visual_qa_item_sidecars:
+    - visual_qa_per_track/items.json
+  visual_qa_window_sidecars:
+    - visual_qa_per_track/windows.normalized.json
+  caption_sidecars:
+    - captioning/video_captions.json
+  llm_query_generation: true
+  use_template_for_medium: false
+  bundle_query_generation: false
+  bucket_query_generation: false
+  emit_contextual: false
+  emit_daft_contextual: true
+
+# Retained from the standalone event-verification reasoning cookbook.
+training_export:
+  formats:
+    - tao-vl-reason-v1.0
+  output_dir: output/auto_labeling/training_export
+  copy_media: true
+  metadata:
+    description: event_verification_reasoning training export
+    license: CC BY-NC-ND 4.0

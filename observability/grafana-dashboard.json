@@ -1,0 +1,234 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "Prometheus / Mimir data source for pipeline metrics",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "title": "Auto-Labeling Pipeline",
+  "uid": "auto-labeling",
+  "tags": ["auto-labeling", "opentelemetry"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "text": "Prometheus", "value": "${DS_PROMETHEUS}" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 100,
+      "type": "text",
+      "title": "",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "### Auto-Labeling — pipeline monitoring\nFleet-level health derived from spanmetrics over the `service.run -> pipeline.run -> task.run_batch -> task.run_entry -> task.run_attempt` span tree."
+      }
+    },
+    {
+      "id": 1,
+      "title": "Throughput — entries/hour by task",
+      "description": "Completed task.run_entry spans in the last hour by task. Each point is one data entry processed by that task.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 3 },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 20, "showPoints": "always", "pointSize": 6, "stacking": { "mode": "normal" } } } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (task_name) (increase(traces_span_metrics_calls_total{span_name=\"task.run_entry\"}[1h]))",
+          "legendFormat": "{{task_name}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Run duration (service.run) — mean (3h) / p50 p95 (24h)",
+      "description": "End-to-end service.run duration: mean over 3h, p50/p95 over 24h. The windows differ, so mean vs p50 is not a clean skew comparison.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 11 },
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "fillOpacity": 15, "showPoints": "always", "pointSize": 6, "spanNulls": true } } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(traces_span_metrics_duration_milliseconds_sum{span_name=\"service.run\"}[3h])) / sum(rate(traces_span_metrics_duration_milliseconds_count{span_name=\"service.run\"}[3h]))",
+          "legendFormat": "mean (3h)"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(traces_span_metrics_duration_milliseconds_bucket{span_name=\"service.run\"}[24h])))",
+          "legendFormat": "p50 (24h)"
+        },
+        {
+          "refId": "C",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(traces_span_metrics_duration_milliseconds_bucket{span_name=\"service.run\"}[24h])))",
+          "legendFormat": "p95 (24h)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Task duration — mean by task (3h)",
+      "description": "Mean task.run_batch duration by task over 3h.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 11 },
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "fillOpacity": 15, "showPoints": "always", "pointSize": 6, "spanNulls": true } } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (task_name) (rate(traces_span_metrics_duration_milliseconds_sum{span_name=\"task.run_batch\"}[3h])) / sum by (task_name) (rate(traces_span_metrics_duration_milliseconds_count{span_name=\"task.run_batch\"}[3h]))",
+          "legendFormat": "{{task_name}} mean (3h)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Task retries (3h)",
+      "description": "Per-entry task retries over 3h, from task.run_attempt. Retry rate = retries / first attempts = average retries per entry (1 retry per entry = 100%). Retries = absolute count (right axis). Reads 0 (not 'No data') when nothing has retried.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "decimals": 0, "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "spanNulls": true } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "retries (3h)" },
+            "properties": [
+              { "id": "unit", "value": "short" },
+              { "id": "decimals", "value": 0 },
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "custom.axisLabel", "value": "retries (count)" }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum(increase(traces_span_metrics_calls_total{span_name=\"task.run_attempt\", attempt!=\"0\"}[3h])) or vector(0)) / sum(increase(traces_span_metrics_calls_total{span_name=\"task.run_attempt\", attempt=\"0\"}[3h]))",
+          "legendFormat": "retry rate (3h)"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(increase(traces_span_metrics_calls_total{span_name=\"task.run_attempt\", attempt!=\"0\"}[3h])) or vector(0)",
+          "legendFormat": "retries (3h)"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Error rate (6h) — pipeline & per task",
+      "description": "Share of spans ending in error over 6h. Pipeline-level uses pipeline.run; per-task uses task.run_entry. Reads 0 (not 'No data') when nothing has errored.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit", "min": 0, "max": 1,
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "spanNulls": true }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum(rate(traces_span_metrics_calls_total{span_name=\"pipeline.run\", status_code=\"STATUS_CODE_ERROR\"}[6h])) or vector(0)) / sum(rate(traces_span_metrics_calls_total{span_name=\"pipeline.run\"}[6h]))",
+          "legendFormat": "pipeline error rate"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (task_name) (rate(traces_span_metrics_calls_total{span_name=\"task.run_entry\", status_code=\"STATUS_CODE_ERROR\"}[6h])) / sum by (task_name) (rate(traces_span_metrics_calls_total{span_name=\"task.run_entry\"}[6h]))",
+          "legendFormat": "{{task_name}} error rate"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Processing speed — frames/sec of active task time (1h)",
+      "description": "Per-task processing speed: frames processed divided by actual task.run_batch execution time (not wall-clock). frames/sec(active) = rate(task_frames_processed_total) / rate(task.run_batch duration in seconds).",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 3 },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 2, "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "always", "pointSize": 6, "spanNulls": true, "axisLabel": "frames/s" } } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (task_name) (rate(task_frames_processed_total[1h])) / (sum by (task_name) (rate(traces_span_metrics_duration_milliseconds_sum{span_name=\"task.run_batch\"}[1h])) / 1000)",
+          "legendFormat": "{{task_name}} frames/s"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Token usage — tokens/hour by type (1h)",
+      "description": "VLM/LLM tokens per hour by type (input vs output) from the OpenAI auto-instrumentation. Cost and load signal.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 27 },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "spanNulls": true } } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (gen_ai_token_type) (rate(gen_ai_client_token_usage_sum[1h])) * 3600",
+          "legendFormat": "{{gen_ai_token_type}} tokens/h"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "VLM call latency p50 / p95 (6h)",
+      "description": "Remote VLM chat-call latency (p50/p95) over 6h, from the OpenAI auto-instrumentation.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 35 },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 5, "spanNulls": true } } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_bucket{gen_ai_request_model=~\".*VL.*\"}[6h])))",
+          "legendFormat": "{{gen_ai_request_model}} p95"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.50, sum by (le, gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_bucket{gen_ai_request_model=~\".*VL.*\"}[6h])))",
+          "legendFormat": "{{gen_ai_request_model}} p50"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "LLM call latency p50 / p95 (6h)",
+      "description": "Remote LLM chat-call latency (p50/p95) over 6h, from the OpenAI auto-instrumentation.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 35 },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 5, "spanNulls": true } } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_bucket{gen_ai_request_model!~\".*VL.*\"}[6h])))",
+          "legendFormat": "{{gen_ai_request_model}} p95"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.50, sum by (le, gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_bucket{gen_ai_request_model!~\".*VL.*\"}[6h])))",
+          "legendFormat": "{{gen_ai_request_model}} p50"
+        }
+      ]
+    }
+  ]
+}

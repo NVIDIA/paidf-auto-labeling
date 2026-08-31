@@ -1,0 +1,180 @@
+# Video Visual Attribute Search product workflow.
+#
+# Each model-backed producer runs as an explicit workflow node. The terminal
+# event-and-person-attribute-search service is PAS-only: it assembles the
+# tracking, captioning, anomaly, and per-person attribute artifacts and uses a
+# text LLM only for retrieval-query generation.
+
+pipeline: video
+workflow:
+  nodes:
+    detection_and_tracking:
+      stage: detection_and_tracking
+      args:
+        - --sam3-prompts
+        - person
+        - --sam3-score-threshold-detection
+        - "0.5"
+        - --sam3-new-det-thresh
+        - "0.6"
+        - --extract-crops
+        - --crop-classes
+        - person
+        - --crops-per-track
+        - "16"
+        - --crop-padding
+        - "0.1"
+        - --min-crop-size
+        - "48"
+        - --min-detection-score
+        - "0.5"
+    captioning:
+      stage: captioning
+      needs:
+        - detection_and_tracking
+      args:
+        - --input-source
+        - original
+        - --window-seconds
+        - "4.0"
+        - --window-frames
+        - "0"
+        - --remainder-threshold
+        - "0"
+        - --sampling-fps
+        - "2.0"
+        - --max-frames
+        - "24"
+        - --resolution
+        - "768"
+    anomaly_visual_qa:
+      stage: visual_qa
+      needs:
+        - captioning
+      args:
+        - --generation-mode
+        - window-direct-vlm
+        - --input-source
+        - original
+        - --question-bank-file
+        - ../question_bank.anomaly_tags.json
+        - --single-window
+        - --max-frames
+        - "16"
+        - --sampling-fps
+        - "3.0"
+        - --resolution
+        - "768"
+        - --temperature
+        - "0"
+        - --max-tokens
+        - "4096"
+        - --raw-windows-sidecar
+        - visual_qa_anomaly/windows.json
+        - --output-items-sidecar
+        - visual_qa_anomaly/items.json
+        - --output-windows-sidecar
+        - visual_qa_anomaly/windows.normalized.json
+        - --state-artifacts-key
+        - visual_qa_anomaly
+        - --no-flat-qa-tasks
+    person_attribute_visual_qa:
+      stage: visual_qa
+      needs:
+        - anomaly_visual_qa
+      args:
+        - --generation-mode
+        - window-direct-vlm
+        - --question-bank-file
+        - ../question_bank.person_attributes.json
+        - --track-crops-sidecar
+        - detection_and_tracking/tracks.json
+        - --max-crops-per-track
+        - "12"
+        - --resolution
+        - "896"
+        - --temperature
+        - "0"
+        - --max-tokens
+        - "4096"
+        - --raw-windows-sidecar
+        - visual_qa_per_track/windows.json
+        - --output-items-sidecar
+        - visual_qa_per_track/items.json
+        - --output-windows-sidecar
+        - visual_qa_per_track/windows.normalized.json
+        - --state-artifacts-key
+        - visual_qa_per_track
+        - --no-flat-qa-tasks
+    person_attribute_search:
+      stage: person_attribute_search
+      needs:
+        - person_attribute_visual_qa
+
+runtime:
+  model_cache_path: ckpts
+  gpu_ids: all
+
+container:
+  user: auto
+  images:
+    detection_and_tracking: paidf-detection-and-tracking-sam3-service
+    captioning: paidf-captioning-service
+    visual_qa: paidf-visual-qa-service
+    person_attribute_search: paidf-event-and-person-attribute-search-service
+  env:
+    - SAM3_MODEL_PATH=/models/sam3
+    - NVIDIA_API_KEY
+  mounts:
+    - /path/to/models/sam3:/models/sam3:ro
+
+data:
+  - inputs:
+      media_path: data/input_media/videos/warehouse_safety/warehouse_safety_0000.mp4
+    output:
+      out_dir: output/auto_labeling/video_epas
+
+# These defaults target non-reasoning instruct models. Thinking models generally
+# require a substantially larger max-token budget for the Visual QA nodes.
+endpoints:
+  vlm:
+    url: http://localhost:8081/v1
+    model: <served-vlm-model>
+  llm:
+    url: http://localhost:8082/v1
+    model: <served-llm-model>
+
+detection_and_tracking:
+  enabled: true
+  model: sam3
+  tracker: sam3
+  classes:
+    - person
+
+captioning:
+  enabled: true
+
+visual_qa:
+  enabled: true
+
+person_attribute_search:
+  enabled: true
+  dataset: upa
+  tracks_sidecars:
+    - detection_and_tracking/tracks.json
+  visual_qa_item_sidecars:
+    - visual_qa_per_track/items.json
+  visual_qa_window_sidecars:
+    - visual_qa_per_track/windows.normalized.json
+  video_captions_sidecars:
+    - captioning/video_captions.json
+  anomaly_items_sidecars:
+    - visual_qa_anomaly/items.json
+  # Generate tiered queries for every tracked person, plus chunk-level Caption
+  # and Anomaly buckets grounded in the two namespaced producer artifacts.
+  llm_query_generation: true
+  use_template_for_medium: false
+  bundle_query_generation: false
+  bucket_query_generation: true
+  emit_contextual: true
+  emit_daft_contextual: true

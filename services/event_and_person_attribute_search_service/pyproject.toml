@@ -1,0 +1,37 @@
+[project]
+name = "event-and-person-attribute-search-service"
+version = "1.1.0"
+description = "Service wrapper for Visual Attribute Search assembly (person attributes + event/anomaly retrieval queries + cross-pass packaging)"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "person-attribute-search",
+    "pyyaml>=6.0.2,<7",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+person-attribute-search = { workspace = true }
+
+[project.scripts]
+main = "event_and_person_attribute_search_service.main:main"
+
+[tool.run.default-args]
+main = [
+    { name = "simple payload", args = "--log-level INFO --input-file payloads/simple.jsonl" },
+    { name = "help", args = "--help" },
+]
+
+[tool.build.images]
+build = "docker buildx build -t paidf-event-and-person-attribute-search-service --build-arg PACKAGE_NAME=event-and-person-attribute-search-service -f services/event_and_person_attribute_search_service/docker/Dockerfile ."
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/event_and_person_attribute_search_service"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

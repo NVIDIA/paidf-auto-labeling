@@ -1,0 +1,54 @@
+# Attribute-only Person Attribute Search for one identity.
+#
+# This workflow does not inspect an image. It reads one caller-supplied attribute
+# JSON document and asks the text LLM for three synonymous retrieval queries at
+# each difficulty tier.
+#
+# The repository-level data/input_media/attributes.json is used in both places
+# below. Keep exactly one data entry: explicit attribute input is intentionally
+# restricted to one DataEntry per service run.
+
+pipeline: image
+workflow:
+  nodes:
+    person_attribute_search:
+      stage: person_attribute_search
+      args:
+        - --attribute-json
+        - data/input_media/attributes.json
+        - --query-prompt-file
+        - pas_synonymous_query_prompt.json
+        - --query-count
+        - "3"
+        - --max-tokens
+        - "2048"
+
+container:
+  user: auto
+  images:
+    person_attribute_search: paidf-event-and-person-attribute-search-service
+  env:
+    - NVIDIA_API_KEY
+
+data:
+  - inputs:
+      # PAS does not read media content. Reusing the attribute file here gives
+      # the service its required single DataEntry without a sentinel image.
+      media_path: data/input_media/attributes.json
+    output:
+      out_dir: output/auto_labeling/pas_image_attributes
+
+endpoints:
+  llm:
+    url: http://localhost:8082/v1
+    model: <served-llm-model>
+
+person_attribute_search:
+  enabled: true
+  dataset: upa
+  bundle_query_generation: true
+  bundle_query_count: 3
+  llm_query_generation: false
+  bucket_query_generation: false
+  emit_contextual: false
+  emit_daft_contextual: false
