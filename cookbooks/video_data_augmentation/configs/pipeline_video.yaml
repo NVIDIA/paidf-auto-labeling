@@ -1,0 +1,212 @@
+# Video data augmentation - end-to-end auto-labeling pipeline (traffic-safety use case).
+#
+# media_path points at the traffic sample clips directory
+# (data/input_media/videos/traffic_video_analytics). Those MP4s are not in
+# git; stage them from NGC (see the folder README). Every clip in the
+# directory runs through the pipeline. The endpoint model names below are
+# defaults. For a
+# real run, copy this file to pipeline_video.local.yaml (gitignored) in this
+# same configs/ directory, set your media path if needed, the SAM3 weights
+# mount path (see container.mounts below — still a placeholder), and the
+# served VLM/LLM model names, then run:
+#   --cookbook-file .../video_data_augmentation/configs/pipeline_video.local.yaml
+# Use --container-dry-run first to inspect runner-generated Docker commands.
+
+pipeline: video
+workflow:
+  nodes:
+    super_resolution:
+      stage: super_resolution
+      args:
+        - --resolution-policy
+        - auto
+        - --min-input-short-side
+        - "720"
+        - --min-input-long-side
+        - "1280"
+        - --res-h
+        - "540"
+        - --res-w
+        - "960"
+        - --window-frames
+        - "32"
+        - --overlap-frames
+        - "8"
+        - --empty-output-policy
+        - fail
+    detection_and_tracking:
+      stage: detection_and_tracking
+      needs:
+        - super_resolution
+      args:
+        - --sam3-prompts
+        - a car
+        - a bus
+        - a truck
+        - a motorcycle
+        - a bicycle
+        - a pedestrian
+        - a traffic light
+        - a police car
+        - an ambulance
+        - a fire truck
+        - --sam3-target-fps
+        - "3.0"
+        - --sam3-session-reset-s
+        - "5.0"
+        - --sam3-max-duration-s
+        - "45.0"
+        - --sam3-write-annotated-video
+        - --sam3-annotated-video-label-style
+        - id
+        - --sam3-annotated-video-mask-opacity
+        - "5"
+    captioning:
+      stage: captioning
+      needs:
+        - detection_and_tracking
+      args:
+        - --input-source
+        - tracking
+        - --prompt-file
+        - ../prompts/dense_caption/traffic_scene_prompt.md
+        - --window-seconds
+        - "4.0"
+        - --window-frames
+        - "0"
+        - --remainder-threshold
+        - "0"
+        - --sampling-fps
+        - "2.0"
+        - --max-frames
+        - "24"
+        - --resolution
+        - "480"
+    visual_qa:
+      stage: visual_qa
+      needs:
+        - captioning
+      args:
+        - --generation-mode
+        - window-vlm-llm
+        - --input-source
+        - tracking
+        - --evidence-prompt-file
+        - ../prompts/mcq/window_vlm_llm/scene_prompt.md
+        - --prompt-file
+        - ../prompts/mcq/window_vlm_llm/mcq_prompt.md
+        - --include-reasoning
+        - --window-seconds
+        - "4.0"
+        - --window-frames
+        - "0"
+        - --remainder-threshold
+        - "0"
+        - --sampling-fps
+        - "2.0"
+        - --max-frames
+        - "24"
+        - --resolution
+        - "480"
+    reasoning:
+      stage: reasoning
+      needs:
+        - visual_qa
+
+runtime:
+  model_cache_path: ckpts
+  gpu_ids: all
+
+# Run all stages as the invoking uid:gid so outputs are writable, and point the
+# SAM3 tracker at its weights. user: auto also triggers rootless env injection
+# (USER/HOME/HF_HOME/XDG_CACHE_HOME/TORCHINDUCTOR_CACHE_DIR). The host side of the
+# mount is a PLACEHOLDER; set the real path in your pipeline_video.local.yaml.
+# Explicit CLI flags still override anything declared here.
+container:
+  user: auto
+  images:
+    super_resolution: paidf-super-resolution-service
+    detection_and_tracking: paidf-detection-and-tracking-sam3-service
+    captioning: paidf-captioning-service
+    visual_qa: paidf-visual-qa-service
+    reasoning: paidf-reasoning-service
+  env:
+    - NVIDIA_API_KEY
+    - SAM3_MODEL_PATH=/models/sam3
+  mounts:
+    - /path/to/sam3/weights:/models/sam3:ro
+
+data:
+  - inputs:
+      media_path: data/input_media/videos/traffic_video_analytics
+    output:
+      out_dir: output/auto_labeling/video_data_augmentation
+
+endpoints:
+  vlm:
+    url: http://localhost:8081/v1
+    model: <served-vlm-model>
+  llm:
+    url: http://localhost:8082/v1
+    model: <served-llm-model>
+
+super_resolution:
+  enabled: true
+  resolver: seedvr2
+  variant: seedvr2_3b
+
+# classes must stay valid COCO category names (used by the rfdetr-* tracker
+# fallback); SAM3-only prompts belong in --sam3-prompts above instead.
+detection_and_tracking:
+  enabled: true
+  model: sam3
+  tracker: sam3
+  classes:
+    - person
+    - bicycle
+    - car
+    - motorcycle
+    - bus
+    - truck
+    - traffic light
+
+captioning:
+  enabled: true
+
+visual_qa:
+  enabled: true
+  question_bank_file: ../question_bank.json
+
+# Reasoning stage config block (read by the reasoning service as `reasoning:`).
+reasoning:
+  reasoning:
+    enabled: true
+    targets:
+      - scene_description
+      - video_summarization
+      - open_qa
+      - mcq_openended
+      - bcq_openended
+      - causal_linkage
+  events:
+    enabled: true
+    prompt_variant: events_from_chunks_traffic
+    prompt_dir: ../prompts/reasoning
+  msted:
+    enabled: true
+  temporal_localization:
+    enabled: true
+    query_file: ../question_bank.json
+  open_qa:
+    enabled: true
+    question_file: ../question_bank.json
+  mcq_openended:
+    enabled: true
+    item_file: ../question_bank.json
+  bcq_openended:
+    enabled: true
+    question_file: ../question_bank.json
+  causal_linkage:
+    enabled: true
+    mode: auto_from_events
+    max_pairs_auto: 6

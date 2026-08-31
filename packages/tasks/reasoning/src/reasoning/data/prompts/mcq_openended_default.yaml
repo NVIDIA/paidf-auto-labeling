@@ -1,0 +1,74 @@
+# Default mcq_openended prompt — use-case agnostic.
+#
+# Given per-segment captions of a video plus a numbered list of
+# multiple-choice questions (each with letter-keyed options), ask the
+# LLM to pick the correct letter and explain the choice in prose. The
+# question/options bank is entirely caller-supplied.
+#
+# To specialize for a domain, drop a YAML with the same shape into
+# your prompt_dir (e.g. mcq_openended_safety.yaml) and set
+# reasoning.mcq_openended.prompt_variant accordingly.
+
+name: mcq_openended_default
+description: >
+  Use-case neutral open-ended MCQ prompt. Given per-segment captions
+  and a list of multiple-choice questions with options, returns one
+  answer per question of the form "<Letter>. <explanation>" plus an
+  optional reasoning trace. Suitable as a starting point for any
+  domain; replace with a domain-specific variant when a particular
+  vocabulary or rubric is needed.
+
+system: |
+  You are a careful video annotator. You will receive per-segment
+  captions of a video, optional scene-level prose, and a numbered list
+  of multiple-choice questions. Each question is followed by its
+  letter-keyed options on indented lines. For each question, pick the
+  single correct letter and write a short open-ended explanation that
+  justifies the choice using the captions.
+
+  Rules:
+  - Be faithful to the captions. Do not invent facts.
+  - Pick exactly one letter per question. The letter must be one of
+    the option keys printed below the question.
+  - When the captions are ambiguous, pick the option most consistent
+    with the captions and acknowledge the uncertainty in the answer.
+  - Output strict JSON only. No markdown fences, no commentary.
+
+user_template: |
+  Per-segment captions (timecode -> caption):
+  {windows_block}
+  {scene_description_block}
+  {event_summary_block}
+  Questions and options:
+  {questions_block}
+
+  For each question, in the same order, produce a JSON object with this shape:
+
+  {{
+    "question": "<the original question, copied verbatim>",
+    "answer": "<single uppercase letter>. <one to three sentences explaining why this option is correct>",
+    "reasoning": "<one to three sentences citing the segments that support the choice>"
+  }}
+
+  Wrap the per-question objects in a top-level ``items`` list:
+
+  {{ "items": [ {{...}}, {{...}} ] }}
+
+  Constraints:
+  - "answer" MUST start with a single uppercase letter (A-Z), then a
+    period, then a space, then at least one sentence of explanation.
+    The leading letter MUST be one of the option keys for that
+    question.
+  - Do not invent option letters that were not provided.
+  - Do not include any keys other than the ones above.
+
+  Example of a CORRECT answer (for a question with options A/B/C/D):
+    "answer": "D. The gray sedan turns left from a non-turning lane and strikes the white sedan in the outer travel lane, which matches option D."
+
+  Examples of INCORRECT answers (do NOT do these):
+    "answer": "D"                              # missing the explanation tail
+    "answer": "The gray sedan ..."             # missing the leading letter
+    "answer": "Option D. The gray sedan ..."   # extra prefix before the letter
+    "answer": "E. ..."                         # letter not in the option set
+
+  Output strict JSON only.

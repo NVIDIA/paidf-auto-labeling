@@ -1,0 +1,41 @@
+[project]
+name = "detection-and-tracking-service"
+version = "1.1.0"
+description = "Standalone service and container wrapper for detection and tracking"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "daft-validation",
+    "detection-and-tracking",
+]
+
+[project.optional-dependencies]
+rfdetr = [
+    "detection-and-tracking[rfdetr]",
+]
+sam3 = [
+    "detection-and-tracking[sam3]",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+daft-validation = { workspace = true }
+detection-and-tracking = { workspace = true }
+
+[project.scripts]
+main = "detection_and_tracking_service.main:main"
+
+[tool.run.default-args]
+main = "--tracker stub --input-file payloads/simple.jsonl"
+
+[tool.build.images]
+rfdetr = "docker buildx build -t paidf-detection-and-tracking-rfdetr-service --build-arg PACKAGE_NAME=detection-and-tracking-service --build-arg RUNTIME_FLAVOR=rfdetr -f services/detection_and_tracking_service/docker/Dockerfile ."
+sam3 = "docker buildx build -t paidf-detection-and-tracking-sam3-service --build-arg PACKAGE_NAME=detection-and-tracking-service --build-arg RUNTIME_FLAVOR=sam3 -f services/detection_and_tracking_service/docker/Dockerfile ."
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

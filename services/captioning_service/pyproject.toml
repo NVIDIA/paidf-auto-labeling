@@ -1,0 +1,39 @@
+[project]
+name = "captioning-service"
+version = "1.1.0"
+description = "Standalone service and container wrapper for the captioning task"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "captioning[video]",
+    "core",
+    "daft-validation",
+]
+
+[tool.uv.sources]
+captioning = { workspace = true }
+core = { workspace = true }
+daft-validation = { workspace = true }
+
+[project.scripts]
+main = "captioning_service.main:main"
+
+[tool.run.default-args]
+main = [
+    { name = "simple payload", args = "--disabled --input-file payloads/simple.jsonl" },
+    { name = "local OpenAI-compatible VLM", args = "--input-file payloads/simple.jsonl --vlm-provider openai-compatible --vlm-endpoint-url http://localhost:8000/v1 --vlm-model Qwen/Qwen3-VL-30B-A3B-Instruct" },
+    { name = "help", args = "--help" },
+]
+
+[tool.build.images]
+main = "docker buildx build -t paidf-captioning-service --build-arg PACKAGE_NAME=captioning-service -f services/captioning_service/docker/Dockerfile ."
+
+[tool.build.image-bases]
+main = "upa-media-base:ubuntu-vp9"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

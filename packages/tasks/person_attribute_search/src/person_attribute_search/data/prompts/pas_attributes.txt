@@ -1,0 +1,30 @@
+Generate a JSON object like the one provided below based on the person in the image(s), choosing from the options in each attribute field, and then generate a caption based on the type, length, style, and color of clothing for both upper and lower body, as well as accessories such as shoe color and type, hats, mask, glasses, hairstyles, and other accessories or carrying objects.
+
+The caption should also identify and describe any visible logos (e.g., brand emblems), specific graphic designs, or patterns (e.g., stripes, floral, plaid) on the clothing. Focus the caption exclusively on visible attributes. Do not use negative descriptions or mention the absence of features. If an attribute like a logo or pattern is not present, simply omit it from the caption entirely.
+
+For any color attribute please use the format <Primary Color> (<Fine-grained Color>), where Primary Color is chosen from: [black, blue, brown, green, grey, orange, pink, purple, red, white, yellow, camouflage, beige]. Example: 'blue (navy blue)', 'grey (silver)', 'red (maroon)'.
+
+The "accessories" field must be an array of 3-item arrays in the format ["relationship", "primary_color", "item"]. Example: [["carrying", "red", "handbag"], ["wearing", "white", "glasses"], ["holding", "black", "smartphone"]]. The primary_color value must be a single string.
+
+{
+  "age": ["child", "teenager", "adult", "senior"],
+  "gender": ["male", "female"],
+  "skin tone": ["light", "medium", "dark"],
+  "body shape": ["thin", "fat", "normal"],
+  "hair length": ["short", "long"],
+  "hair style": ["straight", "curly", "wavy", "bald", "other"],
+  "hair color": ["black", "brown", "blonde", "red", "other"],
+  "top outer length": ["sleeveless", "short sleeve", "long sleeve"],
+  "top outer type": ["t-shirt", "shirt", "sweater", "hoodie", "vest", "jacket", "coat", "robe", "camisole", "other"],
+  "top outer color": "Primary Color (Fine-grained Color)",
+  "top inner type": ["not visible", "collared", "round-neck", "hoodie"],
+  "top inner color": "Primary Color (Fine-grained Color)",
+  "bottom type": ["pants", "shorts", "skirt", "dress", "leggings"],
+  "bottom color": "Primary Color (Fine-grained Color)",
+  "shoe type": ["sneakers", "boots", "high heels", "sandals", "flip-flops", "barefoot"],
+  "shoe color": "Primary Color (Fine-grained Color)",
+  "accessories": [["relationship", "primary_color", "item"]],
+  "multiview consistency": ["yes", "no"],
+  "image quality": ["high", "medium", "low"],
+  "natural language caption": "caption"
+}

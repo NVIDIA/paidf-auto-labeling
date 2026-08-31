@@ -1,0 +1,34 @@
+You are given a single image of a person and their known person-level attributes.
+Generate outputs for THIS specific image only. Only describe what is visible.
+
+Person attributes (use as context, only include what you can actually see in this image):
+{attributes}
+
+**natural_caption**: A fluent 2 sentence maximum description of visible clothing, accessories, hair, and posture.
+- Only include attributes that are visible in this image
+- Do not mention attributes that are absent or unclear
+- No negative descriptions like "no hat", "no glasses", "no mask", "no backpack", etc.
+- Do not use age or gender
+
+**hard**: TWO compact search queries (max 15 words each) in natural language.
+- Only mention what is visible in this image
+- No "unknown", "not visible", or "other" in the captions
+- No negative descriptions like "no hat", "no glasses", "no mask", "no backpack", etc.
+- Focus on distinctive visual features: clothing color/type, accessories (e.g., glasses, backpack, hat, etc.)
+- The two queries should emphasize different aspects (e.g., one focuses on clothing, one on accessories/hair/view)
+- Occasionally add the view of the person's face or body (e.g., "from the front", "from the back", "from the side", etc.)
+
+**visible_attribute_keys**: List ONLY the attribute keys that are clearly visible in this image.
+Choose only from: ["top outer color", "top outer type", "top outer length", "top inner color", "top inner type", "bottom color", "bottom type", "shoe color", "shoe type", "hair length", "hair style", "hair color"]
+
+**visible_accessories**: List the accessory types that are clearly visible in this image.
+Choose only from the accessory types listed in the person attributes above (e.g. "glasses", "backpack").
+Use an empty list [] if none are visible.
+
+Return ONLY this JSON:
+{
+  "natural_caption": "...",
+  "hard": ["...", "..."],
+  "visible_attribute_keys": ["top outer color", "top outer type", ...],
+  "visible_accessories": ["glasses"]
+}

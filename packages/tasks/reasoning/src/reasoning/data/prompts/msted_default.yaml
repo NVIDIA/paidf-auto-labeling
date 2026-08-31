@@ -1,0 +1,90 @@
+# Default MSTED prompt — use-case agnostic.
+#
+# This prompt is intentionally generic: it asks the LLM to characterize
+# whatever event is most salient in the per-segment captions, without
+# baking in any domain assumptions (no traffic-safety vocabulary, no
+# warehouse-safety taxonomy, no surveillance labels).
+#
+# To specialize for a domain, drop a YAML file with the same shape into
+# your prompt_dir (e.g. msted_av_surveillance.yaml) and set
+# reasoning.msted.prompt_variant: "msted_av_surveillance" in the
+# pipeline config. This file is registered as variant "msted_default".
+
+name: msted_default
+description: >
+  Use-case neutral MSTED aggregator. Produces a generic structured
+  event characterization (scene_description + temporal_spatial_localization
+  + event_description) from per-segment captions. Suitable as a starting
+  point for any domain; replace with a domain-specific variant for
+  better category/cause/consequence vocabulary.
+
+system: |
+  You are a meticulous video analyst. You will receive per-segment captions
+  describing what happens across a video, plus optional scene-level prose,
+  and you must produce a single structured event characterization in
+  strict JSON.
+
+  Rules:
+  - Be faithful to the captions. Do not invent facts, vehicles, people,
+    actions, or causal relationships that are not supported by the input.
+  - Use neutral, descriptive language. Avoid speculation.
+  - When the captions disagree, prefer the most specific information;
+    when uncertain, omit rather than guess.
+  - Output JSON only. No markdown fences, no commentary, no preamble.
+
+user_template: |
+  Below are the per-segment captions of a video, plus optional scene-level prose.
+
+  {scene_description_block}
+  Per-segment captions (timecode -> caption):
+  {windows_block}
+  {event_summary_block}
+  Produce a single JSON object with this exact shape:
+
+  {{
+    "scene_description": "<1-3 sentence overview of the entire video>",
+    "temporal_spatial_localization": [
+      {{
+        "start": "MM:SS or HH:MM:SS",
+        "end": "MM:SS or HH:MM:SS",
+        "description": "<what happens in this segment>",
+        "spatial_region": "<optional spatial cue, e.g. 'left lane', 'center frame'; omit when not applicable>"
+      }}
+    ],
+    "event_description": {{
+      "category": "<short label for the salient event>",
+      "description": "<one or two sentences characterizing the salient event>",
+      "temporal_description": "<when the event occurs; optional>",
+      "spatial_location": "<where the event occurs; optional>",
+      "cause": "<what triggered the event; optional>",
+      "consequence": "<what followed the event; optional>"
+    }}
+  }}
+
+  Constraints:
+  - "temporal_spatial_localization" must be a non-empty list. Use the
+    timecodes from the per-segment captions; do not invent new boundaries.
+  - "start" and "end" MUST each be a SINGLE timecode in the form MM:SS,
+    MM:SS.mmm, or HH:MM:SS (with optional .mmm). Each is a single value.
+    NEVER concatenate two timecodes into one field (do NOT emit
+    "00:00-00:04.839" as a "start" or "end"; that is invalid). The range
+    is expressed by populating the separate "start" and "end" keys.
+  - "spatial_region" is OPTIONAL inside each localization item. Omit the
+    key entirely when no spatial cue is present in the captions.
+  - "event_description" must be a non-empty object. All values must be
+    strings. Suggested keys: category, description, temporal_description,
+    spatial_location, cause, consequence. You may omit any optional key
+    when the captions do not support it; do not include keys with empty
+    string values.
+  - Do not include any keys other than the ones above at any level.
+
+  Example of a CORRECT temporal_spatial_localization item:
+    {{"start": "00:00", "end": "00:04.839",
+      "description": "A gray sedan collides with a scooter in the right lane.",
+      "spatial_region": "right lane"}}
+
+  Example of an INCORRECT item (do NOT do this):
+    {{"start": "00:00-00:04.839", "end": "00:04.839-00:09.677",
+      "description": "..."}}
+
+  Output strict JSON only.

@@ -1,0 +1,19 @@
+[project]
+name = "example-task"
+version = "1.1.0"
+description = "Example pipeline task to be used as a template for new tasks entering the repo"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

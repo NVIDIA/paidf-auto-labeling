@@ -1,0 +1,36 @@
+[project]
+name = "training-export-service"
+version = "1.1.0"
+description = "Service wrapper for batch DAFT training-format exports"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "training-export",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+training-export = { workspace = true }
+
+[project.scripts]
+main = "training_export_service.main:main"
+
+[tool.run.default-args]
+main = [
+    { name = "simple payload", args = "--log-level INFO --input-file payloads/simple.jsonl --training-export-format cosmos-reason-v1.0 --training-export-dir output/training" },
+    { name = "help", args = "--help" },
+]
+
+[tool.build.images]
+build = "docker buildx build -t paidf-training-export-service --build-arg PACKAGE_NAME=training-export-service -f services/training_export_service/docker/Dockerfile ."
+
+[tool.build.image-bases]
+build = "upa-media-base:ubuntu-input-only"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

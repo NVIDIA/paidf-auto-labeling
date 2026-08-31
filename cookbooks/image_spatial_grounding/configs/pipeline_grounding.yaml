@@ -1,0 +1,91 @@
+# Image Spatial Grounding: dense captioning -> SAM3 boxes+masks.
+#
+# media_path points at traffic-intersection frames
+# (data/input_media/images/traffic_intersection_frames/). Those JPEGs are
+# not in git; stage NGC traffic clips and extract one still per clip (see
+# the folder README). Every image in the directory runs in one pass. Before
+# a real
+# model-backed run, copy this file to pipeline_grounding.local.yaml
+# (gitignored) and set:
+#   - mounts: your SAM3 weights path
+#   - endpoints.vlm: your OpenAI-compatible VLM server
+#   - data: your own images and output directory, if different
+#
+# Captions (in order):
+#   1. --caption / grounding_2d.caption
+#   2. <data_path>/sidecars/input.json   {"caption": "..."}  (manual / GT override)
+#   3. captioning stage outputs under sidecars/captioning/ or contextual/
+#
+# Prefer omitting sidecars/input.json when using the captioning stage so the
+# dense caption feeds grounding.
+#
+# Auth: export NVIDIA_API_KEY when using an authenticated remote VLM.
+
+pipeline: image
+workflow:
+  nodes:
+    captioning:
+      stage: captioning
+    grounding_2d:
+      stage: grounding_2d
+      needs:
+        - captioning
+      args:
+        # Expression extraction (VLM)
+        - --max-tokens
+        - "4096"
+        - --temperature
+        - "0.2"
+        - --top-p
+        - "0.9"
+        - --timeout-s
+        - "120"
+        - --retries
+        - "2"
+        # Expression / instance filters (VLM groundable + SAM3 length/score)
+        - --filter-ungroundable-expressions
+        - --max-instances-per-expression
+        - "10"
+        - --min-instance-score
+        - "0.5"
+        - --min-bbox-area
+        - "64"
+        # SAM3 grounding
+        - --sam3-target-fps
+        - "10"
+        - --sam3-session-reset-s
+        - "10"
+        - --sam3-max-duration-s
+        - "30"
+
+runtime:
+  model_cache_path: ckpts
+  gpu_ids: all
+
+container:
+  user: auto
+  images:
+    captioning: paidf-captioning-service
+    grounding_2d: paidf-grounding-2d-sam3-service
+  env:
+    - NVIDIA_API_KEY
+    - SAM3_MODEL_PATH=/models/sam3
+  mounts:
+    - /path/to/sam3/weights:/models/sam3:ro
+
+data:
+  - inputs:
+      media_path: data/input_media/images/traffic_intersection_frames
+    output:
+      out_dir: output/auto_labeling/image_spatial_grounding/grounding
+
+endpoints:
+  vlm:
+    url: http://localhost:8081/v1
+    model: <served-vlm-model>
+
+captioning:
+  enabled: true
+
+grounding_2d:
+  enabled: true

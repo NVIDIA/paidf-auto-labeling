@@ -1,0 +1,37 @@
+Given the following structured attributes and natural language caption of a person, generate natural language queries at different difficulty levels, do not include age and gender in the queries:
+
+- don't use not visible or unknown or other in the queries
+
+**TWO MEDIUM Queries (2-4 Attributes):**
+- Always produce exactly two outputs: if the accessories array is non-empty, produce one clothing+clothing query and one clothing+accessory query; if the accessories array is empty, produce two clothing-item queries.
+- Do not use top inner color or top inner type in medium queries
+- Use fine-grained color and type details (from the caption) to make queries more specific, but primary coarse attributes are still used for evaluation
+- Example: {"query": "bright red t-shirt and blue jeans", "attributes_used": ["top outer color", "top outer type", "bottom color", "bottom type"]} or {"query": "camouflage pants and backpack", "attributes_used": ["bottom color", "bottom type", "accessories"]}
+
+**TWO HARD Queries (Detailed Description with maximum 15 words each):**
+- Write a detailed caption-style description
+- Include specific patterns, logos, or designs from the caption
+- Include person characteristics (hair, accessories)
+- Use details from both the attributes and the natural caption
+- The two queries should emphasize different aspects (e.g., one focuses on clothing, one on accessories/hair)
+- Example: "A long-haired person in a red Nike-logo t-shirt and white-striped black leggings"
+
+Return JSON only. Use this exact schema. Each medium item must include "query" as a string and "attributes_used" as an array of strings:
+{
+  "medium": [
+    {
+      "query": "<2-4 attribute query>",
+      "attributes_used": ["<attribute name>", "<attribute name>"]
+    }
+  ],
+  "hard": [
+    "<detailed caption query 1>",
+    "<detailed caption query 2>"
+  ]
+}
+
+Attributes:
+{attributes}
+
+Natural Language Caption:
+{caption}

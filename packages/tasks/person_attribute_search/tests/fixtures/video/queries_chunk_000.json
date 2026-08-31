@@ -1,0 +1,36 @@
+{
+  "chunk_id": "chunk_000",
+  "source_annotation": "../vlm_annotations/chunk_000.json",
+  "queries": [
+    {
+      "query": "person in yellow vest"
+    },
+    {
+      "query": "person in yellow helmet"
+    },
+    {
+      "query": "person in yellow vest walking"
+    },
+    {
+      "query": "person in yellow helmet walking in the warehouse"
+    },
+    {
+      "query": "person in yellow vest walking towards the forklift"
+    },
+    {
+      "query": "person in yellow helmet walking towards the forklift"
+    },
+    {
+      "query": "suspicious running in warehouse"
+    },
+    {
+      "query": "warehouse safety violation"
+    },
+    {
+      "query": "A man in a yellow helmet and a yellow vest is walking in the warehouse."
+    },
+    {
+      "query": "Personnel in high-visibility safety vests navigating the aisle while interacting with equipment."
+    }
+  ]
+}

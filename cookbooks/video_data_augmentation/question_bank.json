@@ -1,0 +1,251 @@
+{
+  "name": "traffic",
+  "version": "2.0",
+  "$comment": "Unified bank: top-level 'questions' drives mcq_generation question-driven-vlm-llm mode; the per-task sections below ('open_qa' / 'mcq_openended' / 'bcq_openended' / 'temporal_localization') drive the matching reasoning.<task> stages when a config references this file via the corresponding *_file knob.",
+  "questions": [
+    {
+      "id": "1_01",
+      "question": "Is there a traffic accident in the video?",
+      "options": [
+        "A. No accident in the video",
+        "B. The moment of collision is occurring in the video",
+        "C. A collision occurred prior to the video"
+      ],
+      "aggregation": "majority"
+    },
+    {
+      "id": "1_02",
+      "question": "Are police vehicles present in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_03",
+      "question": "Is there visible evidence that the weather is clear in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_04",
+      "question": "Is there visible evidence that the weather is cloudy or overcast in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_05",
+      "question": "Is there visible evidence that it is raining in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_06",
+      "question": "Is there visible evidence that the weather is foggy in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_07",
+      "question": "What is the time of day in the scene?",
+      "options": [
+        "A. Day",
+        "B. Night",
+        "C. Other"
+      ],
+      "aggregation": "majority"
+    },
+    {
+      "id": "1_08",
+      "question": "Are ambulances present in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_09",
+      "question": "Are fire trucks present in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_10",
+      "question": "Are the roads wet?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "1_11",
+      "question": "Are there any pedestrians walking in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "2_01",
+      "question": "Is a sedan involved in the accident?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "2_02",
+      "question": "What is the color of the sedan in the accident?",
+      "options": [
+        "A. Black",
+        "B. White",
+        "C. Gray",
+        "D. Blue",
+        "E. Red",
+        "F. Green",
+        "G. Other"
+      ],
+      "aggregation": "majority",
+      "include_if": {
+        "2_01": "A. Yes"
+      }
+    },
+    {
+      "id": "2_03",
+      "question": "Is a motorcycle or bicycle involved in the accident?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "2_04",
+      "question": "Is a walking pedestrian involved in the accident?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "2_05",
+      "question": "Is a vehicle running a red light?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any"
+    },
+    {
+      "id": "2_06",
+      "question": "Are there any pedestrians walking across the road in the scene?",
+      "options": [
+        "A. Yes",
+        "B. No"
+      ],
+      "aggregation": "any",
+      "include_if": {
+        "1_11": "A. Yes"
+      }
+    },
+    {
+      "id": "3_01",
+      "question": "Describe the road layout and traffic pattern.",
+      "options": [],
+      "aggregation": "first"
+    }
+  ],
+
+  "open_qa": [
+    {
+      "id": "tr_oq_1",
+      "question": "What is the main subject and setting of the scene?"
+    },
+    {
+      "id": "tr_oq_2",
+      "question": "What are the most salient actions or events occurring across the clip?"
+    },
+    {
+      "id": "tr_oq_3",
+      "question": "Are there any unusual, hazardous, or anomalous situations visible? Describe them."
+    },
+    {
+      "id": "tr_oq_4",
+      "question": "What is the spatial relationship between the main agents in the scene?"
+    }
+  ],
+
+  "mcq_openended": [
+    {
+      "id": "tr_mo_1",
+      "question": "What is the dominant motion pattern of the agents in the scene?",
+      "options": {
+        "A": "Stationary or near-stationary",
+        "B": "Steady forward motion",
+        "C": "Turning maneuver",
+        "D": "Sudden directional change or impact"
+      }
+    },
+    {
+      "id": "tr_mo_2",
+      "question": "How would you characterize the overall safety state of the scene?",
+      "options": {
+        "A": "Normal, no risk indicators",
+        "B": "Minor risk indicators (close approach, hesitation)",
+        "C": "Active hazard or near-miss",
+        "D": "Confirmed incident or aftermath"
+      }
+    }
+  ],
+
+  "bcq_openended": [
+    {
+      "id": "tr_bo_1",
+      "question": "Is there a collision, near-miss, or other safety-relevant incident visible in the clip?"
+    },
+    {
+      "id": "tr_bo_2",
+      "question": "Is the visible behavior consistent with normal, uneventful traffic flow throughout?"
+    },
+    {
+      "id": "tr_bo_3",
+      "question": "Are there any stationary obstacles or debris in the roadway?"
+    }
+  ],
+
+  "temporal_localization": [
+    {
+      "id": "tr_tl_1",
+      "query": "When does abnormal traffic behavior occur?"
+    },
+    {
+      "id": "tr_tl_2",
+      "query": "When does an obstruction appear in the road?"
+    },
+    {
+      "id": "tr_tl_3",
+      "query": "When does a collision occur?"
+    }
+  ]
+}

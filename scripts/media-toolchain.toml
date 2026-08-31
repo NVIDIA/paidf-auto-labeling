@@ -1,0 +1,36 @@
+[ffmpeg]
+version = "9.0.1"
+url = "https://ffmpeg.org/releases/ffmpeg-9.0.1.tar.xz"
+sha256 = "cf38e0e28c7e5605942c4a77755349b0145804a397af37eb1fb4c77cb237f635"
+
+[nv_codec_headers]
+version = "n12.1.14.0"
+url = "https://github.com/FFmpeg/nv-codec-headers/archive/refs/tags/n12.1.14.0.tar.gz"
+sha256 = "2fefaa227d2a3b4170797796425a59d1dd2ed5fd231db9b4244468ba327acd0b"
+
+[libvpx]
+version = "1.14.0"
+url = "https://archive.ubuntu.com/ubuntu/pool/main/libv/libvpx/libvpx_1.14.0.orig.tar.xz"
+sha256 = "11150687870e4c94479abafe5d1ed38790e68dc7bbe08880fd5fb55138e4c6f3"
+
+[pyav]
+version = "18.1.0"
+sha256 = "47bfc286e1bc9de7ab4681fc2b575cd2460a66919d31ffe1bd5aa54fae531a28"
+build_requirements = [
+    "pip==25.3",
+    "setuptools==78.1.1",
+    "cython==3.1.3",
+]
+
+[opencv_headless]
+version = "4.10.0.84"
+sha256 = "f2017c6101d7c2ef8d7bc3b414c37ff7f54d64413a1847d89970b6b7069b4e1a"
+build_requirements = [
+    "pip==25.3",
+    "setuptools==78.1.1",
+    "wheel==0.45.1",
+    "scikit-build==0.18.1",
+    "cmake==3.30.0",
+    "ninja==1.11.1.1",
+    "numpy==2.2.6",
+]

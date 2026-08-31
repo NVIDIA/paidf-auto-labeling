@@ -1,0 +1,44 @@
+[project]
+name = "example-service"
+version = "1.1.0"
+description = "Example service to be used as a template for new services entering the repo"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "example-task",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+example-task = { workspace = true }
+
+# Registers the service entrypoint with the project workspace for easy discovery and sharing
+[project.scripts]
+main = "example_service.main:main"
+
+# Default arg presets used by `make run` when ARGS is not provided. Keys must
+# match entries in [project.scripts]. In an interactive terminal, the user
+# selects a preset and can edit it before running; in non-interactive runs the
+# first preset is used directly.
+[tool.run.default-args]
+main = [
+    { name = "simple payload", args = "--log-level DEBUG --input-file payloads/simple.jsonl --dev-data-root output/example-service" },
+    { name = "remote template payload", args = "--log-level DEBUG --input-file payloads/remote.jsonl --dev-data-root s3://bucket/path/to/dev-output/" },
+
+]
+
+# Registers Docker images with the workspace build picker. This tells the repo how to build your container.
+# Commands will be run from the repo root.
+[tool.build.images]
+build = "docker buildx build -t paidf-example-service --build-arg PACKAGE_NAME=example-service -f services/example_service/docker/Dockerfile ."
+
+[tool.build.image-bases]
+build = "upa-media-base:ubuntu-input-only"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

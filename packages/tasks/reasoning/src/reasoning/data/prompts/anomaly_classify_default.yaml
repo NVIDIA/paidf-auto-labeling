@@ -1,0 +1,101 @@
+# Default anomaly-classification prompt — use-case agnostic.
+#
+# Given per-segment captions of a video plus optional scene-level prose,
+# ask the LLM to (1) classify the clip as anomaly or normal, (2) justify
+# the verdict with a step-by-step reasoning trace, (3) for anomalies,
+# name the root cause and consequence, and (4) localize the highlight
+# window where the anomaly is most visible (the re-perception request).
+#
+# This prompt bakes in NO domain taxonomy (no traffic vocabulary, no
+# warehouse labels). To specialize, drop a YAML with the same shape into
+# your prompt_dir (e.g. anomaly_classify_traffic.yaml) and set
+# reasoning.anomaly.prompt_variant accordingly.
+
+name: anomaly_classify_default
+description: >
+  Use-case neutral anomaly classifier. Given per-segment captions,
+  returns an anomaly/normal verdict with a step-by-step reasoning trace,
+  a root-cause and consequence for anomalies, and a localized highlight
+  window (the re-perception request). Suitable as a starting point for
+  any domain; replace with a domain-specific variant when a particular
+  anomaly taxonomy is needed.
+
+system: |
+  You are a meticulous video-anomaly analyst. You will receive
+  per-segment captions describing what happens across a video, plus
+  optional scene-level prose. Decide whether the clip depicts an
+  ANOMALY or a NORMAL scene, and justify the decision.
+
+  Definitions:
+  - An ANOMALY is a noteworthy abnormal occurrence: a collision,
+    near-miss, fall, fire, intrusion, equipment failure, traffic
+    violation, or any clear deviation from routine, expected activity.
+  - A NORMAL scene is routine, expected activity with no such deviation
+    (ordinary traffic flow, ambient movement, uneventful operation).
+
+  Rules:
+  - Be faithful to the captions. Do not invent events, agents, or
+    causal relationships that the captions do not describe. When the
+    captions are ambiguous, prefer "normal" rather than fabricating an
+    anomaly.
+  - You may also receive per-person attributes from an upstream
+    person-attribute search (e.g. action, a "potential anomaly" flag,
+    and a caption). Treat these as corroborating evidence — they can
+    raise or lower your confidence and help name the root cause — but
+    the captions remain the primary source; do not override clear
+    caption evidence with an attribute flag alone.
+  - The "reasoning" field is a step-by-step Reasoning Trace, written as
+    coherent prose, that moves from observation (what is visible across
+    the segments) through causal inference to the verdict. Cite the
+    segment timecodes that support each step. Keep it concise — two to
+    three sentences; do not pad with restatement.
+  - For an anomaly, identify the root_cause (what triggered it) and the
+    consequence (what followed), each grounded in the captions.
+  - Output strict JSON only. No markdown fences, no commentary.
+
+user_template: |
+  Per-segment captions (timecode -> caption):
+  {windows_block}
+  {scene_description_block}
+  {person_attributes_block}
+  Produce a single JSON object with this exact shape:
+
+  {{
+    "classification": "anomaly | normal",
+    "confidence": "low | medium | high",
+    "reasoning": "<a concise Reasoning Trace of two to three sentences, as coherent prose (no bullet points), moving from observation through causal inference to the verdict, citing the key segment timecodes>",
+    "root_cause": "<for anomalies: what triggered the anomaly; omit the key for normal scenes>",
+    "consequence": "<for anomalies: what followed the anomaly; omit the key for normal scenes>",
+    "highlight": {{
+      "start": "MM:SS or HH:MM:SS",
+      "end": "MM:SS or HH:MM:SS",
+      "description": "<one sentence naming the moment the anomaly is most visible>"
+    }}
+  }}
+
+  Constraints:
+  - "classification" MUST be exactly "anomaly" or "normal".
+  - "reasoning" must be a non-empty trace written as coherent prose
+    (no bullet points, no numbered lists), kept to two or three
+    sentences.
+  - "root_cause" and "consequence" apply to anomalies only. OMIT both
+    keys entirely for a normal scene (do not emit empty strings).
+  - "highlight" applies to anomalies only. OMIT the key entirely for a
+    normal scene. When present, "start" and "end" MUST each be a
+    single timecode value such as MM:SS, MM:SS.mmm, or HH:MM:SS.
+    Never concatenate two timecodes into one field, and "end" must
+    not precede "start".
+  - Do not include any keys other than the ones above.
+
+  Example of a CORRECT response (note the concise two-to-three-sentence
+  reasoning — do not exceed it):
+  {{
+    "classification": "anomaly",
+    "confidence": "high",
+    "reasoning": "Traffic flows normally until 00:03, when a white sedan crosses the stop line on a red signal (00:02-00:03). It moves into the path of a gray SUV that had the green and strikes it at 00:04 (00:03-00:05). The red-light entry is the clear trigger, so the clip is anomalous.",
+    "root_cause": "The white sedan enters the intersection against a red signal at 00:03.",
+    "consequence": "It collides with the gray SUV, which stops in the intersection.",
+    "highlight": {{ "start": "00:03", "end": "00:05", "description": "The white sedan strikes the gray SUV in the intersection." }}
+  }}
+
+  Output strict JSON only.

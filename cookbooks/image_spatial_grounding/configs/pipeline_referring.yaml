@@ -1,0 +1,60 @@
+# Referring expressions only — run after pipeline_grounding.yaml.
+#
+# grounding_2d writes contextual/objects.json under
+# output/auto_labeling/image_spatial_grounding/grounding/<frame>/ .
+# This config reads those same scenes and adds referring phrases.
+# referring_expressions reads and writes objects.json in data_path, so
+# out_dir must be the grounding output root, not a new empty directory.
+#
+# 1. Stage frames (see data/input_media/images/traffic_intersection_frames/).
+# 2. Run pipeline_grounding.yaml.
+# 3. Run this config. Every image in the frames directory maps to
+#    grounding/<filename>/contextual/objects.json.
+#
+# For a real run, copy this file to pipeline_referring.local.yaml and set
+# endpoints.vlm. No SAM3 mount — referring_expressions does not call SAM3.
+
+pipeline: image
+workflow:
+  nodes:
+    referring_expressions:
+      stage: referring_expressions
+      args:
+        - --draw-box-overlay
+        - --min-match-iou
+        - "0.3"
+        - --frame-number
+        - "0"
+        - --max-tokens
+        - "4096"
+        - --temperature
+        - "0.2"
+        - --timeout-s
+        - "120"
+        - --retries
+        - "2"
+
+runtime:
+  model_cache_path: ckpts
+  gpu_ids: all
+
+container:
+  user: auto
+  images:
+    referring_expressions: paidf-referring-expressions-service
+  env:
+    - NVIDIA_API_KEY
+
+data:
+  - inputs:
+      media_path: data/input_media/images/traffic_intersection_frames
+    output:
+      out_dir: output/auto_labeling/image_spatial_grounding/grounding
+
+endpoints:
+  vlm:
+    url: http://localhost:8081/v1
+    model: <served-vlm-model>
+
+referring_expressions:
+  enabled: true

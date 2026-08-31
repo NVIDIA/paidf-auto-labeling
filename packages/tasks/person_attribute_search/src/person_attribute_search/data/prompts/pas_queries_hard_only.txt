@@ -1,0 +1,24 @@
+Given the following structured attributes and natural language caption of a person, generate natural language queries, do not include age and gender in the queries:
+
+- don't use not visible or unknown or other in the queries
+
+**TWO HARD Queries (Detailed Description with maximum 15 words each):**
+- Write a detailed caption-style description
+- Include specific patterns, logos, or designs from the caption
+- Include person characteristics (hair, accessories)
+- Use details from both the attributes and the natural caption
+- The two queries should emphasize different aspects (e.g., one focuses on clothing, one on accessories/hair)
+
+Return the result in JSON format:
+{
+  "hard": [
+    "<detailed caption query 1>",
+    "<detailed caption query 2>"
+  ]
+}
+
+Attributes:
+{attributes}
+
+Natural Language Caption:
+{caption}

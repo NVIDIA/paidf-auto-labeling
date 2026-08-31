@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: NVIDIA PSIRT
+    url: https://www.nvidia.com/object/submit-security-vulnerability.html
+    about: Report product vulnerabilities through NVIDIA PSIRT, not a public GitHub issue.

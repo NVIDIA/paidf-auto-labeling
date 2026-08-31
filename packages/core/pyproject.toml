@@ -1,0 +1,32 @@
+[project]
+name = "core"
+version = "1.1.0"
+description = "Lightweight core abstractions and utilities for composable video and image annotation pipelines"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "jsonschema>=4.20.0",
+    "multi-storage-client>=0.48.0",
+    "multi-storage-client[boto3]>=0.48.0",
+    "openai>=1.61.0,<3",
+    "opentelemetry-sdk",
+    "opentelemetry-exporter-otlp",
+    "opentelemetry-instrumentation-openai-v2",
+    "opentelemetry-instrumentation-logging",
+    "pydantic>=2.0.0"
+]
+
+[project.optional-dependencies]
+llm = [
+    "regex>=2026.1.15",
+]
+video-output = [
+    "av>=16.1.0,<17",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

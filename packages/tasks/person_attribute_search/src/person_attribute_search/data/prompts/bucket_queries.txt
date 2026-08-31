@@ -1,0 +1,34 @@
+Given the following dense caption, scene/anomaly context, structured attributes, and natural language captions of the people in the video, generate retrieval queries for a video search dataset.
+
+Do not include age or gender in any query. Every query must be grounded in the provided caption or person attributes. Return exactly {{bucket_count}} queries for each bucket.
+
+**PAS queries:**
+- Focus on person attribute search using clothing and visible wearable items only.
+- Each PAS query must follow this concise pattern: "person wearing <color> <clothing>" or "person wearing <color> <clothing> and <color> <clothing>".
+- Do not include actions, posture, locations, anomaly words, or event descriptions in PAS queries.
+- Use the structured person attributes when available, especially clothing color/type, shoes, headwear, and accessories.
+- The source/evidence field should name the attributes or person-caption details used.
+
+**Anomaly queries:**
+- Focus on the voted anomaly category when one is present in the context.
+- Anomaly queries may include a visible subject descriptor plus the anomaly behavior, such as "person in gray hoodie violating warehouse safety rules".
+- If no anomaly category is present, write normal-behavior queries grounded in the visible scene.
+- The source/evidence field should cite the anomaly category, normal context, or caption detail used.
+
+**Caption queries:**
+- Focus on the general scene, event, objects, environment, and visible interactions from the scene and dense captions.
+- These should not depend on person-attribute fields unless the caption itself describes them.
+- The source/evidence field should cite the scene or dense-caption detail used.
+
+Return ONLY valid JSON with this exact schema:
+{
+  "PAS": [
+    ["<query>", "<source/evidence>"]
+  ],
+  "Anomaly": [
+    ["<query>", "<source/evidence>"]
+  ],
+  "Caption": [
+    ["<query>", "<source/evidence>"]
+  ]
+}

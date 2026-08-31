@@ -1,0 +1,91 @@
+# Multi-view Person Attribute Search for one identity.
+#
+# This example uses RSTPReid identity 0000 copied locally as 00000_RSTP.
+# Download the dataset from https://github.com/NjtechCVLab/RSTPReid-Dataset
+# (Google Drive archive linked from that README). Images are not shipped in git.
+# Nested directories are supported. The representative image identifies the
+# single DataEntry; captioning and Visual QA both inspect the complete group in
+# one model request.
+#
+# The workflow therefore writes one consolidated scene/result, not one scene per
+# source image. Change both image-group paths together when using another group.
+
+pipeline: image
+workflow:
+  nodes:
+    captioning:
+      stage: captioning
+      args:
+        - --image-group-dir
+        - data/input_media/images/image_attribute_augmentations/00000_RSTP
+        - --max-group-images
+        - "0"
+    visual_qa:
+      stage: visual_qa
+      needs:
+        - captioning
+      args:
+        - --generation-mode
+        - window-direct-vlm
+        - --image-group-dir
+        - data/input_media/images/image_attribute_augmentations/00000_RSTP
+        - --max-group-images
+        - "0"
+        - --question-bank-file
+        - ../question_bank.person_attributes.json
+        - --no-flat-qa-tasks
+    person_attribute_search:
+      stage: person_attribute_search
+      needs:
+        - visual_qa
+
+container:
+  user: auto
+  images:
+    captioning: paidf-captioning-service
+    visual_qa: paidf-visual-qa-service
+    person_attribute_search: paidf-event-and-person-attribute-search-service
+  env:
+    - NVIDIA_API_KEY
+
+data:
+  - id: 00000_RSTP
+    inputs:
+      # Keep this as a file, not the group directory: directory expansion would
+      # create one DataEntry (and one output scene) per view.
+      media_path: data/input_media/images/image_attribute_augmentations/00000_RSTP/0000_c14_0032.jpg
+    output:
+      out_dir: output/auto_labeling/pas_image_multiview
+
+endpoints:
+  vlm:
+    url: http://localhost:8081/v1
+    model: <served-vlm-model>
+  llm:
+    url: http://localhost:8082/v1
+    model: <served-llm-model>
+
+captioning:
+  enabled: true
+
+visual_qa:
+  enabled: true
+
+person_attribute_search:
+  enabled: true
+  dataset: upa
+  # Canonical outputs from the joint Visual QA request are authoritative.
+  visual_qa_item_sidecars:
+    - visual_qa/items.json
+  visual_qa_window_sidecars:
+    - visual_qa/windows.normalized.json
+  # Supply the consolidated group description when the attribute bank did not
+  # produce a natural_caption answer.
+  caption_sidecars:
+    - captioning/image_caption.json
+  llm_query_generation: true
+  use_template_for_medium: false
+  bundle_query_generation: false
+  bucket_query_generation: false
+  emit_contextual: false
+  emit_daft_contextual: false

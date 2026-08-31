@@ -1,0 +1,43 @@
+[project]
+name = "grounding-2d-service"
+version = "1.1.0"
+description = "Standalone service for canonical unified 2D grounding"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "grounding-2d",
+]
+
+[project.optional-dependencies]
+# GPU/SAM3 flavor uses docker/Dockerfile.gpu (independent of detection; no sibling FROM).
+sam3 = [
+    "grounding-2d[sam3]",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+grounding-2d = { workspace = true }
+
+[project.scripts]
+main = "grounding_2d_service.main:main"
+
+[tool.run.default-args]
+main = [
+    { name = "help", args = "--help" },
+    { name = "canonical dataentry", args = "--input-file payloads/simple.jsonl --vlm-endpoint-url http://localhost:8000/v1 --vlm-model Qwen/Qwen3-VL-30B-A3B-Instruct" },
+    { name = "native dataentry with sam3", args = "--input-file payloads/simple.jsonl --sam3-model-cache-path /models" },
+]
+
+[tool.build.images]
+# Slim CPU image for CI / VLM-only. Live GPU grounding uses the sam3 flavor.
+main = "docker buildx build -t paidf-grounding-2d-service --build-arg PACKAGE_NAME=grounding-2d-service -f services/grounding_2d_service/docker/Dockerfile ."
+# Independent GPU/SAM3 image (no sibling FROM detection).
+sam3 = "docker buildx build -t paidf-grounding-2d-sam3-service --build-arg PACKAGE_NAME=grounding-2d-service --build-arg RUNTIME_FLAVOR=sam3 -f services/grounding_2d_service/docker/Dockerfile.gpu ."
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

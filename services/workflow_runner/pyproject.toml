@@ -1,0 +1,35 @@
+[project]
+name = "workflow-runner"
+version = "1.1.0"
+description = "Container workflow runner for Dockerized stage services"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "training-export",
+    "pyyaml>=6.0.3",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+training-export = { workspace = true }
+
+[project.scripts]
+main = "workflow_runner.main:main"
+
+[tool.run.default-args]
+main = [
+    { name = "simple dry run", args = "--log-level INFO --input-file payloads/simple.jsonl --container-dry-run" },
+    { name = "video cookbook dry run", args = "--log-level INFO --cookbook-file cookbooks/video_data_augmentation/configs/pipeline_video.yaml --container-dry-run" },
+    { name = "help", args = "--help" },
+]
+
+[tool.build.images]
+workflow-runner = "docker buildx build -t paidf-workflow-runner --build-arg PACKAGE_NAME=workflow-runner -f services/workflow_runner/docker/Dockerfile ."
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

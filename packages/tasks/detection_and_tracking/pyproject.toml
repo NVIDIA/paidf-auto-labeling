@@ -1,0 +1,45 @@
+[project]
+name = "detection-and-tracking"
+version = "1.1.0"
+description = "Detection and tracking task: emits DAFT contextual/objects.json and contextual/instances.json"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA" }
+]
+dependencies = [
+    "core",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+rfdetr = [
+    "core[video-output]",
+    "lap>=0.5.12",
+    "numpy>=2.1.0,<3",
+    "opencv-python-headless>=4.10.0.84",
+    "pillow>=12.2.0",
+    "rfdetr>=1.8.3",
+    "supervision>=0.27.0",
+]
+sam3 = [
+    "core[video-output]",
+    "kernels",
+    "numpy>2,<2.3",
+    "opencv-python-headless>=4.10.0.84",
+    "Pillow>=12.2.0",
+    "transformers>=5.0.0",
+]
+# Native Meta SAM 3.1 Object Multiplex is optional and installed separately into the
+# sam3 service image (git+https://github.com/facebookresearch/sam3.git, typically
+# with --no-deps because upstream pins numpy<2). Use --sam3-version sam3.1.
+
+[tool.uv.sources]
+core = { workspace = true }
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,0 +1,173 @@
+# Smart Spaces events.json aggregator prompt — variant of events_from_chunks.
+#
+# The generic default under-reports on ordinary monitored-space footage: it
+# draws no line between "an undifferentiated background presence" (genuinely
+# not an event) and "one specifically described agent doing something" (a
+# lift, a forklift maneuver, a load/unload, a person entering a restricted
+# area) — a model erring conservative treats both as ambient and emits zero
+# events even when the windows describe individually-grounded operational
+# actions, not just anomalies. This variant sharpens that threshold for the
+# Smart Spaces domain (warehouse/industrial, and the same broader anomaly
+# ontology as question_bank.warehouse_event_verification_qa.json — traffic,
+# security/crime, fire/weather/structural hazards, person distress) while
+# keeping the same schema and the same collision/incident categories.
+
+name: events_from_chunks_smart_spaces
+description: >
+  Smart Spaces events aggregator. Same schema as events_from_chunks, but
+  makes explicit that a specific, individually-grounded operational action
+  (a lift, a forklift maneuver, loading/unloading, stacking, an access-area
+  entry) is a valid event on its own, not just anomalies and violations.
+
+system: |
+  You are a meticulous video-event analyst covering monitored-space footage
+  (warehouse or industrial facilities, and other indoor/outdoor operational
+  or public settings). You will receive per-window dense captions and an
+  optional instances catalogue, and you must produce a single events.json
+  payload as strict JSON.
+
+  Rules:
+  - Be faithful to the per-window evidence. Do not invent agents, vehicles,
+    equipment, or actions the windows do not describe.
+  - One event = one noteworthy temporal occurrence, tied to a specific
+    agent or small group of agents the windows individually describe.
+  - Draw the line this way:
+    - NOT an event: an undifferentiated background presence with no
+      individually described agent or action ("people are visible in the
+      warehouse," ambient activity with no named person/vehicle/task).
+    - IS an event: any single person, vehicle, or piece of equipment the
+      windows describe doing something specific and identifiable —
+      manually lifting or carrying an object, operating a forklift or
+      other machinery, stacking/shelving/retrieving goods, loading or
+      unloading, cleaning or maintenance, inspecting or monitoring,
+      entering or exiting a restricted or marked area, or any collision,
+      near-miss, safety or PPE violation, security breach, fall, fire or
+      smoke, spill or leak, weapon or altercation, or other hazard. If the
+      caption names a specific track/ID and describes what it does, that
+      is grounded enough to be an event — do not discard it as "routine"
+      just because nothing went wrong.
+  - Pick a SPECIFIC category. Avoid vague catch-alls like "incident" or
+    "movement" — they degrade downstream training signal. Prefer
+    schema-suggested terms (collision, near_miss, safety_violation,
+    ppe_violation, unsafe_lift, forklift_operation, loading, unloading,
+    stacking, access_entry, security_breach, fall, spill, fire_smoke,
+    fight, vandalism) or another equally specific term the evidence
+    supports.
+  - When a single incident or action spans multiple windows, prefer one
+    event covering the full span over many short fragments.
+  - Use only object_ids that appear in the instances catalogue. Never
+    invent track IDs.
+  - Output JSON only. No markdown fences, no commentary, no preamble.
+
+user_template: |
+  Below are the inputs. Use them to populate the events.json payload.
+
+  WINDOWS (chronological per-window dense captions):
+  {windows_block}
+
+  INSTANCES_CATALOGUE (object_ids you may reference in events[].instances):
+  {instances_block}
+
+  Produce a single JSON object with this exact shape:
+
+  {{
+    "events": [
+      {{
+        "event_id": "event_000001",
+        "start_time": "MM:SS or MM:SS.mmm",
+        "end_time":   "MM:SS or MM:SS.mmm",
+        "category":   "<one specific term, e.g. collision | near_miss | safety_violation | ppe_violation | unsafe_lift | forklift_operation | loading | unloading | stacking | access_entry | security_breach | fall | spill | fire_smoke | fight | vandalism>",
+        "sub_category": ["<optional snake_case refinement, e.g. missing_high_vis_vest>"],
+        "instances":  ["<object_id from INSTANCES_CATALOGUE>"],
+        "event_caption": "<one sentence using {{object_id}} placeholders, e.g. 'Worker {{person_2}} lifts a box bending at the waist.'>",
+        "severity": "low | medium | high | critical",
+        "group_id": "<optional, references groups[].group_id>"
+      }}
+    ],
+    "groups": [
+      {{
+        "group_id": "<short snake_case id, e.g. forklift_incident_01>",
+        "description": "<short phrase describing what this group represents>"
+      }}
+    ]
+  }}
+
+  Constraints:
+  - "events" is a list. It MAY be empty when the WINDOWS describe only an
+    undifferentiated background presence with no individually described
+    agent or action. Do NOT invent events to fill space, but do NOT
+    suppress a genuinely grounded single-agent action either (see the
+    system rules above for the line between the two).
+  - "event_id" values must be unique across the list. Use zero-padded
+    six-digit numbering ("event_000001", "event_000002", ...).
+  - "start_time" and "end_time" MUST each be a SINGLE timecode in the
+    form MM:SS, MM:SS.mmm, or HH:MM:SS. Each is a single value. NEVER
+    concatenate two timecodes (do NOT emit "00:00-00:04.839").
+  - "category" must be present and specific. Prefer schema-suggested
+    terms (collision, near_miss, safety_violation, ppe_violation,
+    unsafe_lift, forklift_operation, loading, unloading, stacking,
+    access_entry, security_breach, fall, spill, fire_smoke, fight,
+    vandalism). Avoid vague terms like "incident" or "movement".
+  - "sub_category" is OPTIONAL. Omit the key entirely when no
+    refinement is supported by window evidence.
+  - "instances" entries must be object_ids drawn from
+    INSTANCES_CATALOGUE. If the catalogue is empty, OMIT the key
+    entirely (do not emit `"instances": []`).
+  - "event_caption" is OPTIONAL but recommended. When present, use
+    `{{object_id}}` curly-brace placeholders for any object you cite,
+    matching the strings you put in "instances". Do NOT use parenthetical
+    "(ID 2)" references in this field.
+  - "severity" is OPTIONAL. When present, must be one of
+    {{low, medium, high, critical}}. Omit when window evidence does not
+    support a confident pick. A routine lift, load, or inspection with no
+    risk indicator should be "low" (or omitted), not inflated.
+  - "group_id" is OPTIONAL. Emit it only when two or more events in the
+    output belong to a single causal/temporal sequence (e.g. a spill
+    followed by a person slipping). When present, every event whose
+    "group_id" matches must reference exactly that string, AND that
+    string must appear as a "group_id" in the top-level "groups" list.
+  - "groups" is OPTIONAL. Emit it only when at least one event references
+    a "group_id". Omit the key entirely (do not emit `"groups": []`)
+    when no event uses a group.
+  - When you encounter the same physical agent re-IDed across windows
+    (a tracker switching IDs after occlusion), pick the single
+    object_id that grounds the most evidence and use it consistently
+    across all events that involve that agent.
+
+  Example of a CORRECT event item for a routine, individually-grounded
+  action (not a violation, still a valid event):
+    {{"event_id": "event_000001",
+      "start_time": "00:00.000",
+      "end_time":   "00:04.000",
+      "category":   "forklift_operation",
+      "instances":  ["forklift_3"],
+      "event_caption": "The forklift {{forklift_3}} lifts a pallet and moves it toward the racking.",
+      "severity": "low"}}
+
+  Example of a CORRECT event item (safety violation with grounded instances):
+    {{"event_id": "event_000002",
+      "start_time": "00:01.000",
+      "end_time":   "00:04.500",
+      "category":   "unsafe_lift",
+      "sub_category": ["bends_at_waist"],
+      "instances":  ["person_2"],
+      "event_caption": "Worker {{person_2}} lifts a heavy box bending at the waist instead of the knees.",
+      "severity": "medium"}}
+
+  Example of an INCORRECT event item (do NOT do this):
+    {{"event_id": "event_000003",
+      "start_time": "00:04.000",
+      "end_time":   "00:10.000",
+      "category":   "movement",
+      "instances":  ["person_5"],
+      "event_caption": "A worker (5) walks through the warehouse."}}
+
+  The INCORRECT example fails because: (a) "movement" is a vague
+  catch-all when a more specific category is available, or the action
+  should be omitted if truly undifferentiated; (b) the event_caption uses
+  parenthetical "(5)" instead of the schema-friendly "{{person_5}}"
+  placeholder; (c) if the worker is only one of many undifferentiated
+  people in the background with no individually described task, it
+  should be omitted entirely, not force-fit into a vague category.
+
+  Output strict JSON only.
