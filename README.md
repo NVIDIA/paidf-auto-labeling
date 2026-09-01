@@ -1,14 +1,14 @@
-# Physical AI Data Factory - Auto-Labeling
+# Physical AI Data Factory - Auto Labeling
 
 ## Overview
 
-Auto-Labeling is the PAIDF workflow repository for turning raw
+Auto Labeling is the PAIDF workflow repository for turning raw
 image and video datasets into reusable annotation artifacts and training-ready
 outputs. It composes containerized stages for super resolution, detection and
 tracking, captioning, Visual QA, reasoning, 2D grounding, referring expressions,
 person-attribute search, and training export.
 
-Auto-Labeling is cookbook-driven: each cookbook defines the input media, stage order,
+Auto Labeling is cookbook-driven: each cookbook defines the input media, stage order,
 model endpoints, checkpoint mounts, prompts, question banks, and output layout
 for a complete labeling workflow. The workflow runner compiles those cookbooks
 into local container execution plans and writes results into a shared DAFT scene
@@ -82,7 +82,7 @@ internals for new VLM/LLM wiring:
 
 ## Architecture
 
-![PAIDF Auto-Labeling Architecture Diagram](./docs/assets/architecture_diagram_paidf_ual.png)
+![PAIDF Auto Labeling Architecture Diagram](./docs/assets/architecture_diagram_paidf_ual.png)
 
 Services package and expose reusable task implementations. The workflow runner
 launches selected services in a fixed relative order over a shared DAFT scene.
@@ -249,7 +249,7 @@ concerns in a public issue.
 
 ## Responsible Use
 
-Auto-Labeling outputs are machine-generated annotations and may be incomplete,
+Auto Labeling outputs are machine-generated annotations and may be incomplete,
 inaccurate, or biased. Apply human review and domain-specific quality checks
 before using them for training, evaluation, or operational decisions.
 
@@ -260,11 +260,11 @@ intended use case.
 
 ## License and Contributions
 
-The PAIDF Auto-Labeling Project is licensed under the Apache 2.0 license. This project is currently not accepting contributions.
+The PAIDF Auto Labeling Project is licensed under the Apache 2.0 license. This project is currently not accepting contributions.
 
 ## Redistribution Notice
 
-The PAIDF Auto-Labeling Project redistributes modified code from other projects. Details may be found in the following files:
+The PAIDF Auto Labeling Project redistributes modified code from other projects. Details may be found in the following files:
 
 Boosttrack: see [packages/tasks/detection_and_tracking/src/detection_and_tracking/backends/boosttrack/UPSTREAM_LICENSE.md](packages/tasks/detection_and_tracking/src/detection_and_tracking/backends/boosttrack/UPSTREAM_LICENSE.md)
 
